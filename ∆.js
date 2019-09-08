@@ -1,140 +1,75 @@
-var CHANGE_DESCRIPTION = 0x00;
-var CHANGE_GROUP       = 0x01;
+var g = {
+	_initalize: function() {},
+	_update: function() {},
+	_draw: function() {},
+	_canvas: null,
+	is_running: true,
 
-// ctrl-k g , alt j
-var ∆ = {
-	list: function(desc, count, setupCallback){
-		var l = new Array(count);   // list to be returned		
-		var d = desc; // proxy for description
+	timer: function(){
+		this._last = 0;
+		this._start = (new Date()).getTime();
 
-		// if a name was passed, grab from CHANGE object
-		if(typeof(desc) == 'string'){
-			d = ∆[desc];
+		this.tick = function()
+		{
+			var t = (new Date()).getTime();
+			var dt = t - this._last;
+			this._last = t;
+			return dt / 1000;
+		};
+
+		this.total = function()
+		{
+			return (new Date()).getTime() - this._start;
+		};
+	},
+
+	canvas: function(dom_element) { g._canvas = dom_element; return this; },
+	initalize: function(f) { g._initialize = f; return this; },
+	update: function(f) { g._update = f; return this; },
+	start: function()
+	{
+		var req_frame = window.webkitRequestAnimationFrame ||
+		                window.mozRequestAnimationFrame    ||
+		                window.oRequestAnimationFrame      ||
+		                window.msRequestAnimationFrame;
+		var step_timer = new g.timer();
+
+		if (!g._initialize())
+		{
+			console.error('initialize_func(): returned false.');
+			return;
 		}
-		
-		// make sure d is a description
-		if(d && d.type == CHANGE_DESCRIPTION){
-			var i = count;
-			for(;i--;){
-				var inst = function(){};
-				
-				// copy array values
-				for(var j = 0; j < d.length; j++)
-					inst.push(d[j]);
 
-				// copy properties
-				for(var k in d)
-					inst[k] = d[k];
+		var update_and_render = function() {
+			var dt = step_timer.tick();
 
-				// allow the user to perform manual
-				// setup to the instance
-				if(setupCallback){
-					setupCallback(inst);
-				}
-
-				l[i] = inst;
+			if (is_running)
+			{
+				g._update(dt);
+				g._draw(dt);
 			}
-		}
-
-		return l;		
+		};
 	},
-	create: function(name, properties, initializer){
-		var desc = ∆[name] = function(){};
-		desc.__proto__.type = CHANGE_DESCRIPTION;
-		desc.__proto__.has  = ∆.has;
-		desc.__proto__._init = [];
+	pointer: {
+		on_move: function(on_move_func)
+		{
+			g._canvas.addEventListener("touchmove", function(e)
+			{
+				e.preventDefault();
+				on_move_func({ x: 0, y: 0 });
+			}, false);
 
-		// add intializer function if specified
-		if(typeof(intitializer) == 'function')
-			desc.__proto__._init.push(initializer);
+			g._canvas.addEventListener("mousemove", function(e)
+			{
+				e.preventDefault();
+				cb(e);
+			},false);
 
-		for(var v in properties)
-			desc.__proto__[v] = properties[v];
-
-		return desc;
-	},
-	has: function(obj, params){
-		// if it is a string look it up form ∆'s description
-		// collection
-		if(typeof(obj) == 'string'){
-			obj = new ∆[obj]();
-			if(!obj) return this;
-		}
-
-		// only operate on descriptions
-		if(!this.type == CHANGE_DESCRIPTION){
+			return this;
+		},
+		on_press: function(on_press_func)
+		{
 			return this;
 		}
-
-		// copy properties from prototypes
-		for(var v in obj.__proto__)
-			with(this){
-				// treat the initializers differently
-				if(v == '_init')
-					__proto__._init = __proto__._init.concat(obj.__proto__._init);
-				else
-					__proto__[v] = obj.__proto__[v];
-			}
-
-		// call all initializers if params are passed
-		if(params){
-			for(var i = this.__proto__._init.length; i--;)
-				this.__proto__._init[i](params);
-		}
-
-		return this;
 	}
 };
-
-var __ = function(){
-	with(∆){
-		create('location',
-			{ pos: [], rot: [] },
-			function(params){
-				this.pos = params.pos || [];
-				this.rot = params.rot || [];
-			}
-		);
-
-		create('movement',
-			{ vel: [], angVel: [] },
-			function(params){
-				this.vel    = params.vel || [];
-				this.angVel = params.angVel || [];
-			}
-		).has('location');
-
-		create('physics',
-			{
-				mass:        1,
-				friction:    1,
-				restitution: 1
-			},
-			function(params){
-				// setter
-				for(var v in params)
-					this.__proto__[v] = params[v] || 1;
-			}
-		).has('movement');
-
-		create('collision',
-			{},
-			function(params){
-				// setter
-					for(var v in params)
-						this.__proto__[v] = params[v] || 1;	
-			}
-		).has('movement');
-	}
-
-	Math.intRayCircle = function(circle, ray){
-		// x^2 + y^2 = r^2
-		// f(x, y) = (x-a)^2 + (y-b)^2 = r^2
-		// f(p + d*t) = r^2
-		// ((px + dx*t)-a)^2 + ((py + dy*t)-b)^2 - r^2 = 0
-		// (px^2 + dx*t^2) - 2(a*px + a*dx*t) + a^2 + (py^2 + dy*t^2) - 2(b*py + b*dy*t) + b^2 - r^2 = 0
-		var d = ray.dir;
-		var dr = Math.sqrt(d[0] * d[0] + d[1] * d[1]);
-		
-	};
-}();	
