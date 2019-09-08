@@ -24,8 +24,11 @@ var g = {
 	},
 
 	canvas: function(dom_element) { g._canvas = dom_element; return this; },
+
 	initalize: function(f) { g._initialize = f; return this; },
+
 	update: function(f) { g._update = f; return this; },
+
 	start: function()
 	{
 		var req_frame = window.webkitRequestAnimationFrame ||
@@ -50,7 +53,9 @@ var g = {
 			}
 		};
 	},
-	pointer: {
+
+	pointer:
+	{
 		on_move: function(on_move_func)
 		{
 			g._canvas.addEventListener("touchmove", function(e)
@@ -63,7 +68,7 @@ var g = {
 			{
 				e.preventDefault();
 				cb(e);
-			},false);
+			}, false);
 
 			return this;
 		},
