@@ -1,8 +1,6 @@
 var g = {
 	_initalize: function() {},
 	_update: function() {},
-	_draw: function() {},
-	_canvas: null,
 	is_running: true,
 
 	timer: function(){
@@ -23,11 +21,11 @@ var g = {
 		};
 	},
 
-	canvas: function(dom_element) { g._canvas = dom_element; return this; },
-
 	initalize: function(f) { g._initialize = f; return this; },
 
 	update: function(f) { g._update = f; return this; },
+
+	canvas: function(dom_element) { g._canvas = dom_element; return this; },
 
 	start: function()
 	{
@@ -36,6 +34,12 @@ var g = {
 		                window.oRequestAnimationFrame      ||
 		                window.msRequestAnimationFrame;
 		var step_timer = new g.timer();
+
+		if (g.web)
+		{
+			g.web._socket = io();
+			g.web._socket.on('message', g.web._on_message);
+		}
 
 		if (!g._initialize())
 		{
@@ -49,32 +53,12 @@ var g = {
 			if (is_running)
 			{
 				g._update(dt);
-				g._draw(dt);
+
+				if (g.web)
+				{
+					g.web._draw(dt);
+				}
 			}
 		};
 	},
-
-	pointer:
-	{
-		on_move: function(on_move_func)
-		{
-			g._canvas.addEventListener("touchmove", function(e)
-			{
-				e.preventDefault();
-				on_move_func({ x: 0, y: 0 });
-			}, false);
-
-			g._canvas.addEventListener("mousemove", function(e)
-			{
-				e.preventDefault();
-				cb(e);
-			}, false);
-
-			return this;
-		},
-		on_press: function(on_press_func)
-		{
-			return this;
-		}
-	}
 };

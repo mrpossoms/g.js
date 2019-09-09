@@ -1,9 +1,52 @@
 <html>
-	<head>
-		<script type="text/javascript" src="∆.js" charset="UTF-8"/>
-		<script type="text/javascript">
-			∆.create('test').has({x:0,y:0});
-			
-		</script>
-	</head>
+<head>
+<script src="/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="js/g.js" charset="UTF-8"></script>
+<script type="text/javascript" src="js/g.web.js" charset="UTF-8"></script>
+<script type="text/javascript">
+
+function on_load()
+{
+
+g.web.on_message(function (msg)
+{
+
+});
+
+
+g.web.canvas(document.getElementsByTagName('canvas')[0]);
+
+
+g.web.pointer.on_move(function (point)
+{
+	console.log(point);
+});
+
+
+g.initialize(function ()
+{
+	return true;
+});
+
+
+g.update(function (dt)
+{
+
+});
+
+
+g.web.draw(function (dt)
+{
+
+});
+
+g.start();
+}
+
+</script>
+</head>
+
+<body onload="on_load()">
+<canvas style="width:100%;height:100%"></canvas>
+</body>
 </html>
