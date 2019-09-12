@@ -21,7 +21,7 @@ var g = {
 		};
 	},
 
-	initalize: function(f) { g._initialize = f; return this; },
+	initialize: function(f) { g._initialize = f; return this; },
 
 	update: function(f) { g._update = f; return this; },
 
