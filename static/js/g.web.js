@@ -3,6 +3,82 @@ g.web = {
 	_on_message: function() {},
 	_canvas: null,
 	
+    gfx: {
+        _initalize: function()
+        {
+            with (g.web)
+            {
+                if (_canvas == null)
+                {
+                    console.error('Canvas element has not been set, WebGL cannot initialize');
+                    return false;
+                }
+
+                const gl = _canvas.getContext('webgl');
+
+                if (gl == null)
+                {
+                    alert('Unable to initialize WebGL. Your browser or machine may not support it.');
+                    return false;
+                }
+
+                gl.clearColor(0.1, 0.1, 0.1, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                window.gl = gl;
+
+                return true;
+            }
+        },
+        texture: function(img)
+        {
+
+        },
+        shader: {
+            create: function(name, vertex_src, fragment_src)
+            {
+                function load_shader(type, source)
+                {
+                    const shader = gl.createShader(type);
+
+                    // Send the source to the shader object
+                    gl.shaderSource(shader, source);
+
+                    // Compile the shader program
+                    gl.compileShader(shader);
+
+                    // See if it compiled successfully
+                    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+                    {
+                        console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+                        gl.deleteShader(shader);
+                        return null;
+                    }
+
+                    return shader;
+                }
+
+                const vertex_shader = load_shader(gl.VERTEX_SHADER, vertex_src);
+                const fragment_shader = load_shader(gl.FRAGMENT_SHADER, fragment_src);
+
+                const program = gl.createProgram();
+                gl.attachShader(program, vertex_shader);
+                gl.attachShader(program, fragment_shader);
+                gl.linkProgram(program);
+
+                if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+                {
+                    console.error('Failed to link shader program: ' + gl.getProgramInfoLog(shaderProgram));
+                    return null;
+                }
+
+                g.web.shader[name] = shader;
+
+                return shader;
+            }
+        }
+    },
+
 	assets: {
 		load: function(asset_arr, on_finish)
 		{

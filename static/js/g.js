@@ -29,7 +29,8 @@ var g = {
 
 	start: function()
 	{
-		var req_frame = window.webkitRequestAnimationFrame ||
+		var req_frame = window.requestAnimationFrame       ||
+                        window.webkitRequestAnimationFrame ||
 		                window.mozRequestAnimationFrame    ||
 		                window.oRequestAnimationFrame      ||
 		                window.msRequestAnimationFrame;
@@ -39,6 +40,8 @@ var g = {
 		{
 			g.web._socket = io();
 			g.web._socket.on('message', g.web._on_message);
+
+            if (!g.web.gfx._initalize()) { return; }
 		}
 
 		if (!g._initialize())
