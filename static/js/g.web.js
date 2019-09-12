@@ -16,24 +16,31 @@ g.web = {
 				{
 					res.blob().then(function(blob)
 					{
-						var obj = null;
+						// general mime classes
 						const type = blob.type.split('/')[0];
 						switch (type)
 						{
 							case 'image':
-								obj = new Image();
-								obj.src = URL.createObjectURL(blob);
+								var img = new Image();
+								img.src = URL.createObjectURL(blob);
+								g.web.assets[path] = img;
 								break;
 							case 'audio':
-
-								break;
-							case 'text':
-
+								g.web.assets[path] = new Audio(URL.createObjectURL(blob));
 								break;
 						}
 
-						g.web.assets[path] = obj;
-						console.log(res);
+						// specific mime types
+						switch (blob.type)
+						{
+							case 'application/json':
+								blob.text().then(function(text) 
+								{
+									g.web.assets[path] = JSON.parse(text);
+								});
+								break;
+						}
+
 						if (count--) { on_finish(); }
 					});
 				});
@@ -63,6 +70,32 @@ g.web = {
 		on_press: function(on_press_func)
 		{
 			return this;
+		}
+	},
+
+	key:
+	{
+		_initalized: false,
+		_map: {},
+		is_pressed: function(key)
+		{
+
+			if (!g.web.key._initalized)
+			{
+				document.onkeydown = function(key)
+				{
+					g.web.key._map[key.key] = true;
+				};
+
+				document.onkeyup = function(key)
+				{
+					g.web.key._map[key.key] = false;
+				};
+
+				g.web.key._initalized = true;
+			}
+
+			return g.web.key._map[key] || false;
 		}
 	},
 

@@ -50,7 +50,7 @@ var g = {
 		var update_and_render = function() {
 			var dt = step_timer.tick();
 
-			if (is_running)
+			if (g.is_running)
 			{
 				g._update(dt);
 
@@ -59,6 +59,10 @@ var g = {
 					g.web._draw(dt);
 				}
 			}
+
+			req_frame(update_and_render);
 		};
+
+		req_frame(update_and_render);
 	},
 };
