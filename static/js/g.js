@@ -6,7 +6,7 @@ Array.prototype.plus = function(v)
 	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] + v[i]; }
 
 	return r;
-};
+}
 
 Array.prototype.minus = function(v)
 {
@@ -16,7 +16,7 @@ Array.prototype.minus = function(v)
 	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] - v[i]; }
 
 	return r;
-};
+}
 
 Array.prototype.times = function(v)
 {
@@ -26,17 +26,41 @@ Array.prototype.times = function(v)
 	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
 
 	return r;
-};
+}
 
-Array.prototype.divided_by = function(v)
+Array.prototype.mat_dims = function()
 {
-	var r = new Array(this.length);
-
-	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
-	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
-
-	return r;
+	return [ this.length, this[0].length ];
 };
+
+Array.prototype.mat_mul = function(m)
+{
+	const m0_dims = this.mat_dims();
+	const m1_dims = m.mat_dims();
+
+	var M = new Array(m0_dims[0]);
+	for (var r = m0_dims[0]; r--;) M[r] = new Array(m1_dims[1]);
+
+	var i = m0_dims[1];
+	for (var r = m0_dims[0]; r--;)
+	for (var c = m1_dims[1]; c--;)
+	{
+		M[r][c] += this[r][i] * m[i][c];
+	}
+
+	return M;
+}
+
+Array.prototype.dot = function(v)
+{
+	var s = 0;
+	for (var i = this.length; i--;) s += this[i] * v[i];
+	return s;
+}
+
+
+
+
 
 var g = {
 	_initalize: function() {},
