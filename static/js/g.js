@@ -1,3 +1,43 @@
+Array.prototype.plus = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] + v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] + v[i]; }
+
+	return r;
+};
+
+Array.prototype.minus = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] - v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] - v[i]; }
+
+	return r;
+};
+
+Array.prototype.times = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
+
+	return r;
+};
+
+Array.prototype.divided_by = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
+
+	return r;
+};
+
 var g = {
 	_initalize: function() {},
 	_update: function() {},
