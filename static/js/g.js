@@ -1,4 +1,4 @@
-Array.prototype.plus = function(v)
+Array.prototype.add = function(v)
 {
 	var r = new Array(this.length);
 
@@ -8,7 +8,7 @@ Array.prototype.plus = function(v)
 	return r;
 }
 
-Array.prototype.minus = function(v)
+Array.prototype.sum = function(v)
 {
 	var r = new Array(this.length);
 
@@ -18,7 +18,17 @@ Array.prototype.minus = function(v)
 	return r;
 }
 
-Array.prototype.times = function(v)
+Array.prototype.mul = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
+
+	return r;
+}
+
+Array.prototype.div = function(v)
 {
 	var r = new Array(this.length);
 
@@ -41,10 +51,12 @@ Array.prototype.mat_mul = function(m)
 	var M = new Array(m0_dims[0]);
 	for (var r = m0_dims[0]; r--;) M[r] = new Array(m1_dims[1]);
 
-	var i = m0_dims[1];
+	var inner = m0_dims[1];
 	for (var r = m0_dims[0]; r--;)
 	for (var c = m1_dims[1]; c--;)
 	{
+		M[r][c] = 0;
+		for (var i = inner; i--;)
 		M[r][c] += this[r][i] * m[i][c];
 	}
 
