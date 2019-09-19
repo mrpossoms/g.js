@@ -152,6 +152,26 @@ Array.prototype.mat_mul = function(m)
 	return O;
 }
 
+Array.prototype.flatten = function()
+{
+	var v = [];
+
+	if (typeof(this[0]) === 'number') { v = this; }
+	else
+	{
+		for (var i = this.length; i--;)
+		{
+			v = v.concat(this[i]);
+		}
+	}
+
+	return v;
+};
+
+Array.prototype.as_Float32 = function(first_argument) {
+	return new Float32Array(this);
+};
+
 Array.prototype.transpose = function()
 {
 	const dims = this.mat_dims();
