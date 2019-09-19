@@ -1,79 +1,3 @@
-Array.prototype.add = function(v)
-{
-	var r = new Array(this.length);
-
-	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] + v; }
-	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] + v[i]; }
-
-	return r;
-}
-
-Array.prototype.sum = function(v)
-{
-	var r = new Array(this.length);
-
-	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] - v; }
-	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] - v[i]; }
-
-	return r;
-}
-
-Array.prototype.mul = function(v)
-{
-	var r = new Array(this.length);
-
-	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
-	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
-
-	return r;
-}
-
-Array.prototype.div = function(v)
-{
-	var r = new Array(this.length);
-
-	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
-	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
-
-	return r;
-}
-
-Array.prototype.mat_dims = function()
-{
-	return [ this.length, this[0].length ];
-};
-
-Array.prototype.mat_mul = function(m)
-{
-	const m0_dims = this.mat_dims();
-	const m1_dims = m.mat_dims();
-
-	var M = new Array(m0_dims[0]);
-	for (var r = m0_dims[0]; r--;) M[r] = new Array(m1_dims[1]);
-
-	var inner = m0_dims[1];
-	for (var r = m0_dims[0]; r--;)
-	for (var c = m1_dims[1]; c--;)
-	{
-		M[r][c] = 0;
-		for (var i = inner; i--;)
-		M[r][c] += this[r][i] * m[i][c];
-	}
-
-	return M;
-}
-
-Array.prototype.dot = function(v)
-{
-	var s = 0;
-	for (var i = this.length; i--;) s += this[i] * v[i];
-	return s;
-}
-
-
-
-
-
 var g = {
 	_initalize: function() {},
 	_update: function() {},
@@ -112,6 +36,7 @@ var g = {
 		                window.msRequestAnimationFrame;
 		var step_timer = new g.timer();
 
+		// if we are a browser, setup socket.io to connect to the server
 		if (g.web)
 		{
 			g.web._socket = io();
@@ -120,13 +45,15 @@ var g = {
             if (!g.web.gfx._initalize()) { return; }
 		}
 
+ 		// custom initialization
 		if (!g._initialize())
 		{
 			console.error('initialize_func(): returned false.');
 			return;
 		}
 
-		var update_and_render = function() {
+		// update, and render if appropriate
+		var update = function() {
 			var dt = step_timer.tick();
 
 			if (g.is_running)
@@ -139,9 +66,128 @@ var g = {
 				}
 			}
 
-			req_frame(update_and_render);
+			if (g.web) { req_frame(update); }
 		};
 
-		req_frame(update_and_render);
+		if (g.web) { req_frame(update); }
 	},
 };
+
+try
+{
+	module.exports.g = g;
+}
+catch { console.log('Not a node.js module'); }
+
+Array.prototype.new_matrix = function(rows, cols)
+{
+	var M = new Array(rows);
+	for (var r = rows; r--;) M[r] = new Array(cols);
+	return M;
+};
+
+Array.prototype.add = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] + v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] + v[i]; }
+
+	return r;
+};
+
+Array.prototype.sub = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] - v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] - v[i]; }
+
+	return r;
+};
+
+Array.prototype.mul = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
+
+	return r;
+};
+
+Array.prototype.div = function(v)
+{
+	var r = new Array(this.length);
+
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
+
+	return r;
+};
+
+Array.prototype.mat_dims = function()
+{
+	return [ this.length, this[0].length ];
+};
+
+Array.prototype.mat_mul = function(m)
+{
+	var M = this.matrix();
+	var N = m.matrix();
+
+	const m0_dims = M.mat_dims();
+	const m1_dims = N.mat_dims();
+
+	var O = this.new_matrix(m0_dims[0], m1_dims[1]);
+
+	var inner = m0_dims[1];
+	for (var r = m0_dims[0]; r--;)
+	for (var c = m1_dims[1]; c--;)
+	{
+		O[r][c] = 0;
+		for (var i = inner; i--;) { O[r][c] += M[r][i] * N[i][c]; }
+	}
+
+	return O;
+}
+
+Array.prototype.transpose = function()
+{
+	const dims = this.mat_dims();
+	var M = this.new_matrix(dims[1], dims[0]);
+
+	for (var r = dims[0]; r--;)
+	for (var c = dims[1]; c--;)
+	{
+		M[c][r] = this[r][c];
+	}
+
+	return M;
+};
+
+Array.prototype.matrix = function()
+{
+	if (this[0].constructor === Array) { return this; }
+	else { return [this].transpose(); }
+};
+
+Array.prototype.I = function(dim)
+{
+	var M = this.new_matrix(dim, dim);
+
+	for (var r = dim; r--;)
+	for (var c = dim; c--;)
+	{
+		M[c][r] = r == c ? 1 : 0;
+	}
+
+	return M;
+};
+
+Array.prototype.dot = function(v)
+{
+	var s = 0;
+	for (var i = this.length; i--;) s += this[i] * v[i];
+	return s;
+}

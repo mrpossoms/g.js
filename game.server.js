@@ -2,7 +2,7 @@
 
 module.exports.server = {
 	// map of all connected players
-	players: {}, 
+	players: {},
 	// complete game state
 	state: {},
 	// handlers for all player connection events
@@ -27,6 +27,6 @@ module.exports.server = {
 	// main game loop
 	update: function(dt)
 	{
-		process.stderr.write('.');
+
 	}
 };

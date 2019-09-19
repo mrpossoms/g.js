@@ -2,7 +2,7 @@ g.web = {
 	_draw: function() {},
 	_on_message: function() {},
 	_canvas: null,
-	
+
     gfx: {
         _initalize: function()
         {
@@ -50,7 +50,11 @@ g.web = {
                     // See if it compiled successfully
                     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
                     {
-                        console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+                        console.error('Error building ' + type);
+                        console.error(source);
+                        console.error('An error occurred compiling the shader: ' + gl.getShaderInfoLog(shader));
+                        console.error('-------------------------');
+
                         gl.deleteShader(shader);
                         return null;
                     }
@@ -72,9 +76,7 @@ g.web = {
                     return null;
                 }
 
-                g.web.shader[name] = shader;
-
-                return shader;
+                return g.web.gfx.shader[name] = program;
             }
         }
     },
@@ -84,43 +86,69 @@ g.web = {
 		{
 			var count = asset_arr.length;
 
-			for (i in asset_arr)
+            function load_resource(path)
+            {
+                return fetch(path).then(function(res)
+                {
+                    const type = res.headers.get('content-type');
+                    const type_stem = type.split('/')[0];
+                    var bytes_to_read = parseInt(res.headers.get('content-length'));
+
+                    switch (type_stem)
+                    {
+                        case 'image':
+                        {
+                            var img = new Image();
+                            img.src = res.url;
+                            g.web.assets[path] = img;
+                        } break;
+
+                        case 'audio':
+                        {
+                            g.web.assets[path] = new Audio(res.url);
+                        } break;
+                    }
+
+                    // specific mime types
+                    switch (type)
+                    {
+                        case 'application/json':
+                        case 'application/json; charset=UTF-8':
+                        {
+                            g.web.assets[path] = '';
+                            res.body.getReader().read().then(function(res)
+                            {
+                                g.web.assets[path] += (new TextDecoder()).decode(res.value);
+                                if (res.done)
+                                {
+                                    g.web.assets[path] = JSON.parse(g.web.assets[path]);
+                                }
+                            });
+                        } break;
+
+                        case 'text/plain':
+                        case 'application/octet-stream':
+                        {
+                            g.web.assets[path] = '';
+                            res.body.getReader().read().then(function(res)
+                            {
+                                g.web.assets[path] += (new TextDecoder()).decode(res.value);
+                            });
+                        } break;
+                    }
+                });
+            }
+
+            var promises = [];
+			for (var i = 0; i < asset_arr.length; i++)
 			{
-				var path = asset_arr[i];
-
-				fetch(path).then(function(res)
-				{
-					res.blob().then(function(blob)
-					{
-						// general mime classes
-						const type = blob.type.split('/')[0];
-						switch (type)
-						{
-							case 'image':
-								var img = new Image();
-								img.src = URL.createObjectURL(blob);
-								g.web.assets[path] = img;
-								break;
-							case 'audio':
-								g.web.assets[path] = new Audio(URL.createObjectURL(blob));
-								break;
-						}
-
-						// specific mime types
-						switch (blob.type)
-						{
-							case 'application/json':
-								blob.text().then(function(text) 
-								{
-									g.web.assets[path] = JSON.parse(text);
-								});
-								break;
-						}
-
-						if (count--) { on_finish(); }
-					});
-				});
+                promises.push(load_resource(asset_arr[i]));
 			}
+
+            Promise.all(promises).then(function(values)
+            {
+                on_finish();
+            });
 		},
 	},
 

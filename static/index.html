@@ -8,30 +8,44 @@
 function on_load()
 {
 
+g.web.canvas(document.getElementsByTagName('canvas')[0]);
+
+g.initialize(function ()
+{
+    // g.is_running = false;
+
+    g.web.assets.load([
+        // 'shaders/basic_textured.json'
+        'shaders/basic_textured.vert',
+        'shaders/basic_textured.frag'
+    ], function() {
+        g.is_running = true;
+
+        g.web.gfx.shader.create('basic_textured',
+            g.web.assets['shaders/basic_textured.vert'],
+            g.web.assets['shaders/basic_textured.frag']
+        );
+    });
+
+	return true;
+});
+
+
+g.web.pointer.on_move(function (point)
+{
+    console.log(point);
+});
+
+
 g.web.on_message(function (msg)
 {
 
 });
 
 
-g.web.canvas(document.getElementsByTagName('canvas')[0]);
-
-
-g.web.pointer.on_move(function (point)
-{
-	console.log(point);
-});
-
-
-g.initialize(function ()
-{
-	return true;
-});
-
-
 g.update(function (dt)
 {
-	if (g.web.key.is_pressed('w')) { console.log('w pressed'); } 
+	if (g.web.key.is_pressed('w')) { console.log('w pressed'); }
 });
 
 
