@@ -168,8 +168,12 @@ Array.prototype.flatten = function()
 	return v;
 };
 
-Array.prototype.as_Float32 = function(first_argument) {
+Array.prototype.as_Float32Array = function(first_argument) {
 	return new Float32Array(this);
+};
+
+Array.prototype.as_Int16Array = function(first_argument) {
+	return new Int16Array(this);
 };
 
 Array.prototype.transpose = function()

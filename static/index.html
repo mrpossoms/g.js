@@ -12,19 +12,21 @@ g.web.canvas(document.getElementsByTagName('canvas')[0]);
 
 g.initialize(function ()
 {
-    // g.is_running = false;
+    g.is_running = false;
 
     g.web.assets.load([
         // 'shaders/basic_textured.json'
         'shaders/basic_textured.vert',
-        'shaders/basic_textured.frag'
+        'shaders/basic_textured.frag',
+        'meshes/cube.json'
     ], function() {
-        g.is_running = true;
-
         g.web.gfx.shader.create('basic_textured',
             g.web.assets['shaders/basic_textured.vert'],
             g.web.assets['shaders/basic_textured.frag']
         );
+
+        g.web.assets['mesh/cube'] = g.web.gfx.mesh.create(g.web.assets["meshes/cube.json"]);
+        g.is_running = true;
     });
 
 	return true;
@@ -51,7 +53,11 @@ g.update(function (dt)
 
 g.web.draw(function (dt)
 {
+    if (g.is_running == false) { return; }
 
+    const cube = g.web.assets['mesh/cube'];
+    cube.draw_with('basic_textured')
+        .attribute({name:'a_position', buffer: 'positions', components: 4});
 });
 
 g.start();

@@ -27,6 +27,8 @@ module.exports.server = {
 	// main game loop
 	update: function(dt)
 	{
-
+		const child_process = require("child_process");
+		// Sleep for 5 seconds
+		child_process.execSync("sleep 1");
 	}
 };
