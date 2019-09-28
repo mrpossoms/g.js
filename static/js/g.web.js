@@ -23,9 +23,14 @@ g.web = {
                 }
 
                 gl.clearColor(0.1, 0.1, 0.1, 1.0);
+                gl.clearDepth(1.0);                 // Clear everything
+                gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+                gl.disable(gl.DEPTH_TEST);           // Enable depth testing
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
                 window.gl = gl;
+
+                document.body.onresize();
 
                 return true;
             }
@@ -72,7 +77,7 @@ g.web = {
 
                 if (!gl.getProgramParameter(program, gl.LINK_STATUS))
                 {
-                    console.error('Failed to link shader program: ' + gl.getProgramInfoLog(shaderProgram));
+                    console.error('Failed to link shader program: ' + gl.getProgramInfoLog(program));
                     return null;
                 }
 
@@ -136,16 +141,17 @@ g.web = {
                             {
                                 if (mesh_ref.indices)
                                 {
+                                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh_ref.indices);
                                     gl.drawElements(
                                         gl.TRIANGLES,
-                                        mesh_ref.indices.length,
+                                        mesh_ref.element_count,
                                         gl.UNSIGNED_SHORT,
                                         0
                                     );
                                 }
                                 else
                                 {
-                                    gl.drawArrays(gl.TRIANGLES, 0, mesh_ref.positions.length / 3);
+                                    gl.drawArrays(gl.TRIANGLES, 0, mesh_ref.positions.length);
                                 }
                             }
                         };
@@ -178,6 +184,11 @@ g.web = {
                     mesh.indices = gl.createBuffer();
                     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indices);
                     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh_json.indices.as_Int16Array(), gl.STATIC_DRAW);
+                    mesh.element_count = mesh_json.indices.length;
+                }
+                else
+                {
+                    mesh.element_count = mesh_json.positions.length;
                 }
 
                 return mesh;
@@ -316,6 +327,7 @@ g.web = {
 		document.body.onresize = function(e) {
 			g.web._canvas.width = document.body.clientWidth;
 			g.web._canvas.height = document.body.clientHeight;
+            gl.viewport(0, 0, document.body.clientWidth, document.body.clientHeight);
 		};
 		return this;
 	},

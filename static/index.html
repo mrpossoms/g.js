@@ -14,18 +14,22 @@ g.initialize(function ()
 {
     g.is_running = false;
 
-    g.web.assets.load([
-        // 'shaders/basic_textured.json'
-        'shaders/basic_textured.vert',
-        'shaders/basic_textured.frag',
-        'meshes/cube.json'
-    ], function() {
-        g.web.gfx.shader.create('basic_textured',
-            g.web.assets['shaders/basic_textured.vert'],
-            g.web.assets['shaders/basic_textured.frag']
+    gl.disable(gl.CULL_FACE);
+
+    const asset_list = [
+    'shaders/screen_space.vert',
+    'shaders/basic_uv.frag',
+    'meshes/plane.json'
+    ];
+
+    g.web.assets.load(asset_list,
+    function() {
+        g.web.gfx.shader.create('screen_space',
+            g.web.assets['shaders/screen_space.vert'],
+            g.web.assets['shaders/basic_uv.frag']
         );
 
-        g.web.assets['mesh/cube'] = g.web.gfx.mesh.create(g.web.assets["meshes/cube.json"]);
+        g.web.assets['mesh/plane'] = g.web.gfx.mesh.create(g.web.assets["meshes/plane.json"]);
         g.is_running = true;
     });
 
@@ -55,9 +59,13 @@ g.web.draw(function (dt)
 {
     if (g.is_running == false) { return; }
 
-    const cube = g.web.assets['mesh/cube'];
-    cube.draw_with('basic_textured')
-        .attribute({name:'a_position', buffer: 'positions', components: 4});
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const plane = g.web.assets['mesh/plane'];
+    plane.using_shader('screen_space')
+         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+         .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+         .draw_tris();
 });
 
 g.start();
