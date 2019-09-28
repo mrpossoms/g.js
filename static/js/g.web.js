@@ -35,9 +35,47 @@ g.web = {
                 return true;
             }
         },
-        texture: function(img)
-        {
+        texture: {
+            _filtering: null,
+            _wraping: null,
 
+            repeating: function() { this._wraping = gl.REPEAT; return this; },
+            clamped: function() { this._wraping = gl.CLAMP; return this; },
+            pixelated: function() { this._filtering = gl.NEAREST; return this; },
+            smooth: function() { this._filtering = gl.LINEAR; return this; },
+
+            create: function(img)
+            {
+                const tex = gl.createTexture();
+
+                const wrap = g.web.gfx.texture._wraping;
+                const filter = g.web.gfx.texture._filtering;
+
+                img.onload = function()
+                {
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+                    gl.texImage2D(
+                        gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA,
+                        gl.RGBA,
+                        gl.UNSIGNED_BYTE,
+                        img
+                    );
+
+                    if (wrap == null)
+                    { console.error('Texture wrap not specified. Please call repeating() or clamped()'); }
+                    if (filter == null)
+                    { console.error('Texture filter not specified. Please call pixelated() or smooth()'); }
+
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
+                };
+
+                return tex;
+            }
         },
         shader: {
             create: function(name, vertex_src, fragment_src)
@@ -96,6 +134,7 @@ g.web = {
                     {
                         const mesh_ref = this;
                         const shader = g.web.gfx.shader[shader_name];
+                        var tex_unit = 0;
                         gl.useProgram(shader);
 
                         return {
@@ -136,6 +175,15 @@ g.web = {
                                         return shader_ref;
                                     }
                                 };
+                            },
+                            use_texture: function(uni_name, tex)
+                            {
+                                const loc = gl.getUniformLocation(shader, uni_name);
+                                gl.activeTexture(gl.TEXTURE0 + tex_unit);
+                                gl.bindTexture(gl.TEXTURE_2D, tex);
+                                gl.uniform1i(loc, tex_unit);
+                                ++tex_unit;
+                                return this;
                             },
                             draw_tris: function()
                             {

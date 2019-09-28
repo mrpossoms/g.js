@@ -18,7 +18,8 @@ g.initialize(function ()
 
     const asset_list = [
     'shaders/screen_space.vert',
-    'shaders/basic_uv.frag',
+    'shaders/basic_textured.frag',
+    'imgs/stars.jpg',
     'meshes/plane.json'
     ];
 
@@ -26,10 +27,13 @@ g.initialize(function ()
     function() {
         g.web.gfx.shader.create('screen_space',
             g.web.assets['shaders/screen_space.vert'],
-            g.web.assets['shaders/basic_uv.frag']
+            g.web.assets['shaders/basic_textured.frag']
         );
 
         g.web.assets['mesh/plane'] = g.web.gfx.mesh.create(g.web.assets["meshes/plane.json"]);
+        g.web.assets['tex/stars'] = g.web.gfx.texture.repeating()
+                                                     .pixelated()
+                                                     .create(g.web.assets["imgs/stars.jpg"])
         g.is_running = true;
     });
 
@@ -65,6 +69,7 @@ g.web.draw(function (dt)
     plane.using_shader('screen_space')
          .with_attribute({name:'a_position', buffer: 'positions', components: 3})
          .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+         .use_texture('u_texture', g.web.assets['tex/stars'])
          .draw_tris();
 });
 
