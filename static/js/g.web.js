@@ -35,8 +35,46 @@ g.web = {
                 return true;
             }
         },
-	width: function() { return g.web._canvas.width; },
-	height: function() { return g.web._canvas.height; },
+        camera: function() {
+            this._view = [].I(4);
+            this._proj = [].I(4);
+
+            this.view = function(position, subject, up)
+            {
+                if (position && subject && up)
+                {
+                    const forward = position.sub(subject).norm();
+                    this._view = [].view(up.norm(), forward, position);
+                }
+
+                return this._view;
+            };
+
+            this.projection = function() { return this._proj; }
+
+            this.perspective = function(fov, near, far)
+            {
+                fov = fov || Math.PI / 2;
+                near = near || 0.1;
+                far = far || 100;
+
+                this._proj = [].perspective(fov, g.web.gfx.aspect(), near, far);
+
+                return this;
+            };
+
+            this.orthographic = function(near, far)
+            {
+                const a = g.web.gfx.aspect();
+                near = near || 0.1;
+                far = far || 100;
+                this._proj = [].orthographic(-a, a, -1, 1, near, far);
+
+                return this;
+            };
+        },
+        width: function() { return g.web._canvas.width; },
+        height: function() { return g.web._canvas.height; },
         aspect: function()
         {
             return g.web._canvas.width / g.web._canvas.height;
@@ -169,6 +207,11 @@ g.web = {
                                 gl.enableVertexAttribArray(loc);
 
                                 return this;
+                            },
+                            with_camera: function(camera)
+                            {
+                                return this.set_uniform('u_proj').mat4(camera.projection())
+                                           .set_uniform('u_view').mat4(camera.view());
                             },
                             set_uniform: function(uni_name)
                             {
@@ -327,22 +370,38 @@ g.web = {
 
 	pointer:
 	{
+        _last : [ 0, 0 ],
+
 		on_move: function(on_move_func)
 		{
 			g.web._canvas.addEventListener("touchmove", function(e)
 			{
 				e.preventDefault();
+                g.web.pointer._last = [0, 0];
 				on_move_func({ x: 0, y: 0 });
 			}, false);
 
 			g.web._canvas.addEventListener("mousemove", function(e)
 			{
 				e.preventDefault();
+                g.web.pointer._last = [ e.clientX, e.clientY ];
 				on_move_func(e);
 			}, false);
 
 			return this;
 		},
+
+        cast_ray: function(view)
+        {
+            const s = [ g.web.gfx.width(), g.web.gfx.height() ];
+            const h = s.mul(0.5);
+            const p = g.web.pointer._last.sub(h).div(h);
+            const d = [ p[0], p[1], 1, 1 ];
+
+            const dp = view.mat_mul(d);
+
+            console.log(dp);
+        },
 
 		on_press: function(on_press_func)
 		{

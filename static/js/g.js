@@ -120,8 +120,8 @@ Array.prototype.div = function(v)
 {
 	var r = new Array(this.length);
 
-	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
-	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
+	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] / v; }
+	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] / v[i]; }
 
 	return r;
 };
@@ -135,16 +135,16 @@ Array.prototype.lerp = function(v, p)
 
 Array.prototype.len = function()
 {
-	if (typeof this[0].constructor !== 'number') { return NaN; }
+	if (typeof this[0] !== 'number') { return NaN; }
 
 	return Math.sqrt(this.dot(this));
 };
 
 Array.prototype.norm = function()
 {
-	if (typeof this[0].constructor !== 'number') { return null; }
+	if (typeof this[0] !== 'number') { return null; }
 
-	return this.div(this.len);
+	return this.div(this.len());
 }
 
 Array.prototype.mat_dims = function()
@@ -290,7 +290,7 @@ Array.prototype.orthographic = function(r, l, t, b, n, f)
 
 Array.prototype.view = function(up, forward, position)
 {
-	const r = up.cross(forward);
+	const r = up.cross(forward).mul(-1);
 	const u = up;
 	const f = forward;
 	const p = position;
@@ -325,4 +325,39 @@ Array.prototype.rotation = function(axis, angle)
 		[a[0]*a[2]*omc+a[1]*s, a[1]*a[2]*omc-a[0]*s, c+a[2]*a[2]*omc,      0],
 		[                   0,                    0,                    0, 1]
 	];
+};
+
+Math.ray = function(ray)
+{
+	return {
+		intersects: {
+			sphere: function(position, radius)
+			{
+				const l = position.sub(ray.position);
+				const s = ray.direction.dot(l);
+				const l_2 = l.dot(l);
+				const r_2 = radius * radius;
+				var t = 0;
+
+				if (s < 0 && l_2 > r_2) { return false; }
+
+				const m_2 = l_2 - s * s;
+
+				if (m_2 > r_2) { return false; }
+
+				const q = Math.sqrt(r_2 - m_2);
+
+				if (r_2 - m_2)
+				{
+					t = s - q;
+				}
+				else
+				{
+					t = s + q;
+				}
+
+				return ray.position + ray.direction * t;
+			}
+		}
+	};
 };
