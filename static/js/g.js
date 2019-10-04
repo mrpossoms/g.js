@@ -228,15 +228,15 @@ Array.prototype.translate = function(t)
 
 Array.prototype.perspective = function(fov, aspect, near, far)
 {
-	const a = 1 / Math.tan(fov / 2);
+	const a = Math.tan(Math.PI * 0.5 - 0.5 * fov);
 	const fsn = far - near;
 	const fpn = far + near;
 	const ftn = far * near;
 
 	return [
-		[  a/aspect,         0,          0,         0 ],
-		[         0,         a,          0,         0 ],
-		[         0,         0,   -fpn/fsn, -2*ftn/fsn ],
-		[         0,         0,         -1,         1 ]
+	       [  a/aspect,         0,          0,         0 ],
+	       [         0,         a,          0,         0 ],
+	       [         0,         0,   -fpn/fsn,        -1 ],
+	       [         0,         0, -2*ftn/fsn,         1 ]
 	];
 };

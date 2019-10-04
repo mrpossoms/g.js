@@ -286,7 +286,7 @@ g.web = {
                         case 'application/json; charset=UTF-8':
                         {
                             g.web.assets[path] = '';
-                            res.body.getReader().read().then(function(res)
+                            return res.body.getReader().read().then(function(res)
                             {
                                 g.web.assets[path] += (new TextDecoder()).decode(res.value);
                                 bytes_to_read -= res.value.length;
@@ -301,7 +301,7 @@ g.web = {
                         case 'application/octet-stream':
                         {
                             g.web.assets[path] = '';
-                            res.body.getReader().read().then(function(res)
+                            return res.body.getReader().read().then(function(res)
                             {
                                 g.web.assets[path] += (new TextDecoder()).decode(res.value);
                             });
@@ -311,10 +311,10 @@ g.web = {
             }
 
             var promises = [];
-			for (var i = 0; i < asset_arr.length; i++)
-			{
-                promises.push(load_resource(asset_arr[i]));
-			}
+	for (var i = 0; i < asset_arr.length; i++)
+	{
+		promises.push(load_resource(asset_arr[i]));
+	}
 
             Promise.all(promises).then(function(values)
             {

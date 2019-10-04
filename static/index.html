@@ -70,10 +70,10 @@ g.web.draw(function (dt)
     plane.using_shader('basic_textured')
          .with_attribute({name:'a_position', buffer: 'positions', components: 3})
          .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
-         .set_uniform('u_proj').mat4([].perspective(Math.PI / 2, g.web.gfx.aspect(), 0.1, 1000))
+         .set_uniform('u_proj').mat4([].perspective(Math.PI / 2, g.web.gfx.aspect(), 0.1, 100))
          // .set_uniform('u_proj').mat4([].I(4))
          .set_uniform('u_view').mat4([].I(4))
-         .set_uniform('u_model').mat4([].translate([Math.cos(t), Math.sin(t), -5]))
+         .set_uniform('u_model').mat4([].translate([Math.cos(t), Math.sin(t), Math.sin(t) - 1]))
          .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
          .draw_tris();
 });
