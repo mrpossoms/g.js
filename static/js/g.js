@@ -216,6 +216,15 @@ Array.prototype.dot = function(v)
 	return s;
 }
 
+Array.prototype.cross = function(v)
+{
+	return [
+		this[1] * v[2] - this[2] * v[1],
+		this[2] * v[0] - this[0] * v[2],
+		this[0] * v[1] - this[1] * v[0]
+	];
+}
+
 Array.prototype.translate = function(t)
 {
 	return [
@@ -239,4 +248,28 @@ Array.prototype.perspective = function(fov, aspect, near, far)
 	       [         0,         0,   -fpn/fsn,        -1 ],
 	       [         0,         0, -2*ftn/fsn,         1 ]
 	];
+};
+
+Array.prototype.view = function(up, forward, position)
+{
+	const r = up.cross(forward);
+	const u = up;
+	const f = forward;
+	const p = position;
+
+	var ori = [
+		[ r[0], r[1], r[2], 0 ],
+		[ u[0], u[1], u[2], 0 ],
+		[ f[0], f[1], f[2], 0 ],
+		[    0,    0,    0, 1 ]
+	];
+
+	var trans = [
+		[     1,     0,     0,    0 ],
+		[     0,     1,     0,    0 ],
+		[     0,     0,     1,    0 ],
+		[ -p[0], -p[1], -p[2],    1 ]
+	];
+
+	return trans.mat_mul(ori);
 };
