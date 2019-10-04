@@ -1,4 +1,4 @@
-var g = {
+const g = {
 	_initalize: function() {},
 	_update: function() {},
 	is_running: true,
@@ -73,16 +73,15 @@ var g = {
 	},
 };
 
-try
-{
-	module.exports.g = g;
-}
-catch { console.log('Not a node.js module'); }
 
 Array.prototype.new_matrix = function(rows, cols)
 {
 	var M = new Array(rows);
-	for (var r = rows; r--;) M[r] = new Array(cols);
+	for (var r = rows; r--;)
+	{
+		M[r] = new Array(cols);
+		for (var c = cols; c--;) { M[r][c] = 0; }
+	}
 	return M;
 };
 
@@ -171,7 +170,109 @@ Array.prototype.mat_mul = function(m)
 	}
 
 	return O;
-}
+};
+
+Array.prototype.swap_rows = function(row_i, row_j)
+{
+	const tmp = this[i];
+	this[i] = this[j];
+	this[j] = tmp;
+	return this;
+};
+
+Array.prototype.augment = function()
+{
+	const dims = this.mat_dims();
+	const R = dims[0], C = dims[1];
+    const Mc = C * 2;
+    var M = this.new_matrix(R, Mc);
+
+    for (var r = R; r--;)
+    {
+        // form the identity on the right hand side
+        M[r][r + C] = 1.0;
+
+        for (var c = C; c--;)
+        {
+            M[r][c] = this[r][c];
+        }
+    }
+
+    return M;
+};
+
+Array.prototype.rref = function()
+{
+	var M = this.matrix();
+	const dims = M.mat_dims();
+	const R = dims[0], C = dims[1];
+	var piv_c = 0;
+
+    // compute upper diagonal
+    for (var r = 0; r < R; r++)
+    {
+        // Check if the piv column of row r is zero. If it is, lets
+        // try to find a row below that has a non-zero column
+        if (M[r][piv_c] == 0)
+        {
+            var swap_ri = -1;
+            for (var ri = r + 1; ri < R; ri++)
+            {
+                if (M[ri][piv_c] != 0)
+                {
+                    swap_ri = ri;
+                    break;
+                }
+            }
+
+            if (swap_ri > -1) { M.swap_rows(swap_ri, r); }
+        }
+
+        { // next row, scale so leading coefficient is 1
+            const d = 1 / M[r][piv_c];
+
+            // scale row
+            for (var c = piv_c; c < C; c++) { M[r][c] *= d; }
+        }
+
+
+        for (var ri = 0; ri < R; ri++)
+        {
+            // skip zero elements and skip row r
+            if (M[ri][piv_c] == 0 || ri == r) { continue; }
+
+            const d = M[ri][piv_c];
+
+            // scale row then subtract the row above to zero out
+            // other elements in this column
+            for (var c = piv_c; c < C; c++)
+            {
+                M[ri][c] -= d * M[r][c];
+            }
+        }
+
+        ++piv_c;
+    }
+
+	return M;
+};
+
+Array.prototype.inverse = function()
+{
+	const dims = this.mat_dims();
+	const R = dims[0], C = dims[1];
+	const _rref = this.augment().rref();
+
+	var M = new Array(R);
+
+	for (var r = R; r--;)
+	{
+		var s = _rref[r].slice(C, 2 * C);
+		M[r] = s;
+	}
+
+	return M;
+};
 
 Array.prototype.flatten = function()
 {
@@ -361,3 +462,9 @@ Math.ray = function(ray)
 		}
 	};
 };
+
+try
+{
+	module.exports.g = g;
+}
+catch(e) { console.log('Not a node.js module'); }

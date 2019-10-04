@@ -1,4 +1,4 @@
-
+const g = require('./static/js/g.js');
 
 module.exports.server = {
 	// map of all connected players
