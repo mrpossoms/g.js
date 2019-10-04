@@ -17,7 +17,7 @@ g.initialize(function ()
     gl.disable(gl.CULL_FACE);
 
     const asset_list = [
-    'shaders/screen_space.vert',
+    'shaders/basic_textured.vert',
     'shaders/basic_textured.frag',
     'imgs/stars.jpg',
     'meshes/plane.json'
@@ -25,8 +25,8 @@ g.initialize(function ()
 
     g.web.assets.load(asset_list,
     function() {
-        g.web.gfx.shader.create('screen_space',
-            g.web.assets['shaders/screen_space.vert'],
+        g.web.gfx.shader.create('basic_textured',
+            g.web.assets['shaders/basic_textured.vert'],
             g.web.assets['shaders/basic_textured.frag']
         );
 
@@ -58,18 +58,23 @@ g.update(function (dt)
 	if (g.web.key.is_pressed('w')) { console.log('w pressed'); }
 });
 
-
+var t = 0;
 g.web.draw(function (dt)
 {
+    t += dt;
     if (g.is_running == false) { return; }
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     const plane = g.web.assets['mesh/plane'];
-    plane.using_shader('screen_space')
+    plane.using_shader('basic_textured')
          .with_attribute({name:'a_position', buffer: 'positions', components: 3})
          .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
-         .use_texture('u_texture', g.web.assets['tex/stars'])
+         .set_uniform('u_proj').mat4([].perspective(Math.PI / 2, g.web.gfx.aspect(), 0.1, 1000))
+         // .set_uniform('u_proj').mat4([].I(4))
+         .set_uniform('u_view').mat4([].I(4))
+         .set_uniform('u_model').mat4([].translate([Math.cos(t), Math.sin(t), -5]))
+         .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
          .draw_tris();
 });
 

@@ -159,7 +159,7 @@ Array.prototype.flatten = function()
 	if (typeof(this[0]) === 'number') { v = this; }
 	else
 	{
-		for (var i = this.length; i--;)
+		for (var i = 0; i < this.length; ++i)
 		{
 			v = v.concat(this[i]);
 		}
@@ -169,11 +169,11 @@ Array.prototype.flatten = function()
 };
 
 Array.prototype.as_Float32Array = function(first_argument) {
-	return new Float32Array(this);
+	return new Float32Array(this.flatten());
 };
 
 Array.prototype.as_Int16Array = function(first_argument) {
-	return new Int16Array(this);
+	return new Int16Array(this.flatten());
 };
 
 Array.prototype.transpose = function()
@@ -215,3 +215,28 @@ Array.prototype.dot = function(v)
 	for (var i = this.length; i--;) s += this[i] * v[i];
 	return s;
 }
+
+Array.prototype.translate = function(t)
+{
+	return [
+		[ 1, 0, 0, 0 ],
+		[ 0, 1, 0, 0 ],
+		[ 0, 0, 1, 0 ],
+		[ t[0], t[1], t[2], 1.   ]
+	];
+};
+
+Array.prototype.perspective = function(fov, aspect, near, far)
+{
+	const a = 1 / Math.tan(fov / 2);
+	const fsn = far - near;
+	const fpn = far + near;
+	const ftn = far * near;
+
+	return [
+		[  a/aspect,         0,          0,         0 ],
+		[         0,         a,          0,         0 ],
+		[         0,         0,   -fpn/fsn, -2*ftn/fsn ],
+		[         0,         0,         -1,         1 ]
+	];
+};

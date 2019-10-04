@@ -35,6 +35,10 @@ g.web = {
                 return true;
             }
         },
+        aspect: function()
+        {
+            return g.web._canvas.width / g.web._canvas.height;
+        },
         texture: {
             _filtering: null,
             _wraping: null,
@@ -168,22 +172,25 @@ g.web = {
                             {
                                 const shader_ref = this;
                                 const loc = gl.getUniformLocation(shader, uni_name);
+
+                                if (loc < 0) { console.error('Could not find uniform "' + uni_name + '"'); }
+
                                 return {
                                     mat4: function(m)
                                     {
-                                        gl.uniformMatrix4fv(loc, false, m.as_Float32Array());
+                                        const v = m.as_Float32Array();
+                                        gl.uniformMatrix4fv(loc, false, v);
                                         return shader_ref;
-                                    }
+                                    },
+                                    texture: function(tex)
+                                    {
+                                        gl.activeTexture(gl.TEXTURE0 + tex_unit);
+                                        gl.bindTexture(gl.TEXTURE_2D, tex);
+                                        gl.uniform1i(loc, tex_unit);
+                                        ++tex_unit;
+                                        return shader_ref;
+                                    },
                                 };
-                            },
-                            use_texture: function(uni_name, tex)
-                            {
-                                const loc = gl.getUniformLocation(shader, uni_name);
-                                gl.activeTexture(gl.TEXTURE0 + tex_unit);
-                                gl.bindTexture(gl.TEXTURE_2D, tex);
-                                gl.uniform1i(loc, tex_unit);
-                                ++tex_unit;
-                                return this;
                             },
                             draw_tris: function()
                             {
