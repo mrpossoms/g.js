@@ -271,6 +271,23 @@ Array.prototype.perspective = function(fov, aspect, near, far)
 	];
 };
 
+Array.prototype.orthographic = function(r, l, t, b, n, f)
+{
+	const rml = r - l;
+	const rpl = r + l;
+	const tmb = t - b;
+	const tpb = t + b;
+	const fmn = f - n;
+	const fpn = f + n;
+
+	return [
+	       [  2/rml,         0,          0, -rpl/rml ],
+	       [      0,     2/tmb,          0, -tpb/tmb ],
+	       [      0,         0,     -2/fmn, -fpn/fmn ],
+	       [      0,         0,          0,        1 ]
+	];
+};
+
 Array.prototype.view = function(up, forward, position)
 {
 	const r = up.cross(forward);

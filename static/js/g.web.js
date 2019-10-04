@@ -35,6 +35,8 @@ g.web = {
                 return true;
             }
         },
+	width: function() { return g.web._canvas.width; },
+	height: function() { return g.web._canvas.height; },
         aspect: function()
         {
             return g.web._canvas.width / g.web._canvas.height;
