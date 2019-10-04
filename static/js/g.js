@@ -126,6 +126,27 @@ Array.prototype.div = function(v)
 	return r;
 };
 
+Array.prototype.lerp = function(v, p)
+{
+	var r = new Array(this.length);
+	for (var i = 0; i < r.length; i++) { r[i] = this[i] * (1-p) + v[i] * p; }
+	return r;
+};
+
+Array.prototype.len = function()
+{
+	if (typeof this[0].constructor !== 'number') { return NaN; }
+
+	return Math.sqrt(this.dot(this));
+};
+
+Array.prototype.norm = function()
+{
+	if (typeof this[0].constructor !== 'number') { return null; }
+
+	return this.div(this.len);
+}
+
 Array.prototype.mat_dims = function()
 {
 	return [ this.length, this[0].length ];
@@ -272,4 +293,19 @@ Array.prototype.view = function(up, forward, position)
 	];
 
 	return trans.mat_mul(ori);
+};
+
+Array.prototype.rotation = function(axis, angle)
+{
+	const a = axis;
+	const c = Math.cos(angle);
+	const s = Math.sin(angle);
+	const omc = 1 - c;
+
+	return [
+		[c+a[0]*a[0]*omc,      a[1]*a[0]*omc+a[2]*s, a[2]*a[0]*omc-a[1]*s, 0],
+		[a[0]*a[1]*omc-a[2]*s, c+a[1]*a[1]*omc,      a[2]*a[1]*omc+a[0]*s, 0],
+		[a[0]*a[2]*omc+a[1]*s, a[1]*a[2]*omc-a[0]*s, c+a[2]*a[2]*omc,      0],
+		[                   0,                    0,                    0, 1]
+	];
 };
