@@ -75,6 +75,7 @@ g.update(function (dt)
 });
 
 var t = 0;
+plane_q = [0, 0, 0, 1];
 
 g.web.draw(function (dt)
 {
@@ -88,11 +89,13 @@ g.web.draw(function (dt)
     // cam.perspective();
     cam.orthographic();
 
+    plane_q = plane_q.quat_mul([].quat_rotation([0, 0, 1], dt));
+
     plane.using_shader('basic_textured')
          .with_attribute({name:'a_position', buffer: 'positions', components: 3})
          .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
          .with_camera(cam)
-         .set_uniform('u_model').mat4([].translate(plane_pos))
+         .set_uniform('u_model').mat4(plane_q.quat_to_matrix())
          .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
          .draw_tris();
 });

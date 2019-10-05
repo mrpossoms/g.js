@@ -428,6 +428,51 @@ Array.prototype.rotation = function(axis, angle)
 	];
 };
 
+
+Array.prototype.quat_rotation = function(axis, angle)
+{
+	var a_2 = angle / 2;
+	var a = Math.sin(a_2);
+
+	const _axis = axis.mul(a);
+
+	return _axis.concat(Math.cos(a_2));
+};
+
+
+Array.prototype.quat_to_matrix = function()
+{
+	var v = this;
+	var a = v[3], b = v[0], c = v[1], d = v[2];
+	var a2 = a * a, b2 = b * b, c2 = c * c, d2 = d * d;
+
+	return [
+	    [ a2 + b2 - c2 - d2, 2 * (b*c - a*d)  , 2 * (b*d + a*c)  , 0],
+	    [ 2 * (b*c + a*d)  , a2 - b2 + c2 - d2, 2 * (c*d - a*b)  , 0],
+	    [ 2 * (b*d - a*c)  , 2 * (c*d + a*b)  , a2 - b2 - c2 + d2, 0],
+	    [ 0                , 0                , 0                , 1],
+	];
+};
+
+
+Array.prototype.quat_mul = function(q)
+{
+	var q0 = this;
+	var q1 = q;
+
+	var t3 = q0.slice(0, 3);
+	var o3 = q1.slice(0, 3);
+
+	var r = t3.cross(o3);
+	var w = t3.mul(q1[3]);
+	r = r.add(w);
+	w = o3.mul(q0[3]);
+	r = r.add(w);
+
+	return r.concat(q0[3] * q1[3] - t3.dot(o3));
+};
+
+
 Math.ray = function(ray)
 {
 	return {
