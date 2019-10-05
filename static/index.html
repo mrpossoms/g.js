@@ -23,13 +23,12 @@ g.initialize(function ()
 {
     g.is_running = false;
 
-    gl.disable(gl.CULL_FACE);
-
     const asset_list = [
     'shaders/basic_textured.vert',
     'shaders/basic_textured.frag',
     'imgs/stars.jpg',
-    'meshes/plane.json'
+    'meshes/plane.json',
+    'meshes/exported-cube.json'
     ];
 
     g.web.assets.load(asset_list,
@@ -39,7 +38,8 @@ g.initialize(function ()
             g.web.assets['shaders/basic_textured.frag']
         );
 
-        g.web.assets['mesh/plane'] = g.web.gfx.mesh.create(g.web.assets["meshes/plane.json"]);
+        // g.web.assets['mesh/plane'] = g.web.gfx.mesh.create(g.web.assets["meshes/plane.json"]);
+        g.web.assets['mesh/cube'] = g.web.gfx.mesh.create(g.web.assets['meshes/exported-cube.json']);
         g.web.assets['tex/stars'] = g.web.gfx.texture.repeating()
                                                      .pixelated()
                                                      .create(g.web.assets["imgs/stars.jpg"])
@@ -95,7 +95,7 @@ g.web.draw(function (dt)
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const plane = g.web.assets['mesh/plane'];
+    const mesh = g.web.assets['mesh/cube'];
 
     // cam.perspective();
     cam.orthographic();
@@ -104,14 +104,14 @@ g.web.draw(function (dt)
 
     // cam._view = cam.q.quat_to_matrix();
 
-    plane.using_shader('basic_textured')
-         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-         .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
-         .with_camera(cam)
-         .set_uniform('u_model').mat4([].I(4))
-         // .set_uniform('u_model').mat4(cam.q.quat_to_matrix())
-         .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
-         .draw_tris();
+    mesh.using_shader('basic_textured')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+        .with_camera(cam)
+        .set_uniform('u_model').mat4([].I(4))
+        // .set_uniform('u_model').mat4(cam.q.quat_to_matrix())
+        .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
+        .draw_tris();
 });
 
 g.start();

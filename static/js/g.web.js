@@ -25,7 +25,7 @@ g.web = {
                 gl.clearColor(0.1, 0.1, 0.1, 1.0);
                 gl.clearDepth(1.0);                 // Clear everything
                 gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
-                gl.disable(gl.DEPTH_TEST);           // Enable depth testing
+                gl.enable(gl.DEPTH_TEST);           // Enable depth testing
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
                 window.gl = gl;
@@ -38,6 +38,9 @@ g.web = {
         camera: function() {
             this._view = [].I(4);
             this._proj = [].I(4);
+            this._pos = [0,0,0];
+            this._sub = [0,0,1];
+            this._up = [0,1,0];
 
             this.view = function(position, subject, up)
             {
@@ -48,6 +51,13 @@ g.web = {
                 }
 
                 return this._view;
+            };
+
+            this.position = function(p)
+            {
+                this._pos = p;
+                this.view(this._pos, this._sub, this._up);
+                return this;
             };
 
             this.projection = function() { return this._proj; }
