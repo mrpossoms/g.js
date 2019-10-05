@@ -389,7 +389,7 @@ Array.prototype.orthographic = function(r, l, t, b, n, f)
 	];
 };
 
-Array.prototype.view = function(up, forward, position)
+Array.prototype.view = function(position, forward, up)
 {
 	const r = up.cross(forward).mul(-1);
 	const u = up;
@@ -437,6 +437,20 @@ Array.prototype.quat_rotation = function(axis, angle)
 	const _axis = axis.mul(a);
 
 	return _axis.concat(Math.cos(a_2));
+};
+
+
+Array.prototype.quat_rotate_vector = function(v)
+{
+	var q_xyz = this.slice(0, 3);
+
+	var t = q_xyz.cross(v);
+	t = t.mul(2);
+
+	var u = q_xyz.cross(t);
+	t = t.mul(this[3]);
+
+	return v.add(t).add(u);
 };
 
 

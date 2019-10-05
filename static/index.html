@@ -11,8 +11,11 @@ function on_load()
 
 var cam = new g.web.gfx.camera();
 var plane_pos = [ 0, 0, 0 ];
+var plane_q = [0, 0, 0, 1];
+
 cam.view([0, 0, 0], [0, 0, 0], [0, 1, 0]);
 cam.position = [0, 0, -2];
+cam.q = [0, 0, 0, 1];
 
 g.web.canvas(document.getElementsByTagName('canvas')[0]);
 
@@ -47,11 +50,17 @@ g.initialize(function ()
 });
 
 
-g.web.pointer.on_move(function (point)
+g.web.pointer.on_move(function (event)
 {
-    const view = [].view([0, 1, 0], [Math.sin(0), 0, -Math.cos(0)], [0, 0, -2]);
+    cam.q = cam.q.quat_mul([].quat_rotation([0, 1, 0], -event.movementX / 100));
+    cam.q = cam.q.quat_mul([].quat_rotation([1, 0, 0], -event.movementY / 100));
+    // console.log([event.movementX, event.movementY]);s
+});
 
-    g.web.pointer.cast_ray(view);
+
+g.web.pointer.on_delta(function (event)
+{
+    // console.log([event.movementX, event.movementY]);
 });
 
 
@@ -63,19 +72,21 @@ g.web.on_message(function (msg)
 
 g.update(function (dt)
 {
+    const forward = cam.q.quat_rotate_vector([0, 0, -1]);
+    const up = cam.q.quat_rotate_vector([0, 1, 0]);
+    const right = forward.cross(up);
 
-	if (g.web.key.is_pressed('w')) { cam.position = cam.position.add([0, 0, dt]); }
-    if (g.web.key.is_pressed('s')) { cam.position = cam.position.add([0, 0, -dt]); }
-    if (g.web.key.is_pressed('a')) { cam.position = cam.position.add([dt, 0, 0]); }
-    if (g.web.key.is_pressed('d')) { cam.position = cam.position.add([-dt, 0, 0]); }
+	if (g.web.key.is_pressed('w')) { cam.position = cam.position.add(forward.mul(-dt)); }
+    if (g.web.key.is_pressed('s')) { cam.position = cam.position.add(forward.mul(dt)); }
+    if (g.web.key.is_pressed('a')) { cam.position = cam.position.add(right.mul(dt)); }
+    if (g.web.key.is_pressed('d')) { cam.position = cam.position.add(right.mul(-dt)); }
 
     plane_pos = [ Math.cos(t), Math.sin(t), 0 ].mul(0);
-    cam.view(cam.position, plane_pos, [0, 1, 0]);
-
+    cam._view = [].view(cam.position.sub(forward), forward, up);
+    // cam.view(cam.position, ([0, 0, 1]), ([0, 1, 0]));
 });
 
 var t = 0;
-plane_q = [0, 0, 0, 1];
 
 g.web.draw(function (dt)
 {
@@ -91,11 +102,14 @@ g.web.draw(function (dt)
 
     plane_q = plane_q.quat_mul([].quat_rotation([0, 0, 1], dt));
 
+    // cam._view = cam.q.quat_to_matrix();
+
     plane.using_shader('basic_textured')
          .with_attribute({name:'a_position', buffer: 'positions', components: 3})
          .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
          .with_camera(cam)
-         .set_uniform('u_model').mat4(plane_q.quat_to_matrix())
+         .set_uniform('u_model').mat4([].I(4))
+         // .set_uniform('u_model').mat4(cam.q.quat_to_matrix())
          .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
          .draw_tris();
 });

@@ -44,7 +44,7 @@ g.web = {
                 if (position && subject && up)
                 {
                     const forward = position.sub(subject).norm();
-                    this._view = [].view(up.norm(), forward, position);
+                    this._view = [].view(position, forward, up.norm());
                 }
 
                 return this._view;
@@ -391,6 +391,24 @@ g.web = {
 			return this;
 		},
 
+        on_delta: function(on_delta_func)
+        {
+            if ("onpointerlockchange" in document)
+            {
+                document.addEventListener('pointerlockchange', function(e)
+                {
+                    on_delta_func(e);
+                }, false);
+            }
+            else if ("onmozpointerlockchange" in document)
+            {
+                document.addEventListener('mozpointerlockchange', function(e)
+                {
+                    on_delta_func(e);
+                }, false);
+            }
+        },
+
         cast_ray: function(view)
         {
             const s = [ g.web.gfx.width(), g.web.gfx.height() ];
@@ -400,7 +418,7 @@ g.web = {
 
             const dp = view.mat_mul(d);
 
-            console.log(dp);
+            // console.log(dp);
         },
 
 		on_press: function(on_press_func)
@@ -445,6 +463,15 @@ g.web = {
 			g.web._canvas.height = document.body.clientHeight;
             gl.viewport(0, 0, document.body.clientWidth, document.body.clientHeight);
 		};
+
+        g.web._canvas.requestPointerLock = g.web._canvas.requestPointerLock ||
+                                           g.web._canvas.mozRequestPointerLock;
+
+        document.exitPointerLock = document.exitPointerLock ||
+                                   document.mozExitPointerLock;
+
+        g.web._canvas.requestPointerLock();
+
 		return this;
 	},
 
