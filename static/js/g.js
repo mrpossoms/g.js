@@ -41,7 +41,7 @@ const g = {
 		{
 			g.web._socket = io();
 			g.web._socket.on('message', g.web._on_message);
-
+			g.web.socket = function() { return g.web._socket; }
             if (!g.web.gfx._initalize()) { return; }
 		}
 
@@ -73,6 +73,10 @@ const g = {
 	},
 };
 
+Array.prototype.is_matrix = function()
+{
+	return this[0].constructor === Array;
+}
 
 Array.prototype.new_matrix = function(rows, cols)
 {
@@ -107,12 +111,58 @@ Array.prototype.sub = function(v)
 
 Array.prototype.mul = function(v)
 {
-	var r = new Array(this.length);
+	var w = new Array(this.length);
 
-	if (typeof v === 'number')        { for (var i = this.length; i--;) r[i] = this[i] * v; }
-	else if (v.constructor === Array) { for (var i = this.length; i--;) r[i] = this[i] * v[i]; }
+	if (typeof v === 'number')
+	{
+		if (this.is_matrix())
+		{
+			const dims = this.mat_dims();
+			for (var r = dims[0]; r--;)
+			{
+				w[r] = new Array(dims[1]);
+				for (var c = dims[1]; c--;)
+				{
+					w[r][c] = this[r][c] * v;
+				}
+			}
+		}
+		else
+		{
+			for (var i = this.length; i--;) w[i] = this[i] * v;
+		}
+	}
+	else if (v.constructor === Array && typeof v[0] === 'number') { for (var i = this.length; i--;) w[i] = this[i] * v[i]; }
 
-	return r;
+	return w;
+};
+
+Array.prototype.pow = function(ex)
+{
+	var w = new Array(this.length);
+
+	if (typeof ex === 'number')
+	{
+		if (this.is_matrix())
+		{
+			const dims = this.mat_dims();
+			for (var r = dims[0]; r--;)
+			{
+				w[r] = new Array(dims[1]);
+				for (var c = dims[1]; c--;)
+				{
+					w[r][c] = Math.pow(this[r][c], ex);
+				}
+			}
+		}
+		else
+		{
+			for (var i = this.length; i--;) w[i] = Math.pow(this[i], ex);
+		}
+	}
+	else if (v.constructor === Array && typeof ex[0] === 'number') { for (var i = this.length; i--;) w[i] = Math.pow(this[i], ex[i]); }
+
+	return w;
 };
 
 Array.prototype.div = function(v)
@@ -318,6 +368,11 @@ Array.prototype.matrix = function()
 	else { return [this].transpose(); }
 };
 
+Array.prototype.random_unit = function()
+{
+	return [Math.random(), Math.random(), Math.random()].sub([0.5, 0.5, 0.5]).norm();
+}
+
 Array.prototype.I = function(dim)
 {
 	var M = this.new_matrix(dim, dim);
@@ -350,10 +405,10 @@ Array.prototype.cross = function(v)
 Array.prototype.translate = function(t)
 {
 	return [
-		[ 1, 0, 0, 0 ],
-		[ 0, 1, 0, 0 ],
-		[ 0, 0, 1, 0 ],
-		[ t[0], t[1], t[2], 1.   ]
+		[    1,    0,    0,    0    ],
+		[    0,    1,    0,    0    ],
+		[    0,    0,    1,    0    ],
+		[ -t[0], -t[1], -t[2], 1.   ]
 	];
 };
 
@@ -391,26 +446,28 @@ Array.prototype.orthographic = function(r, l, t, b, n, f)
 
 Array.prototype.view = function(position, forward, up)
 {
-	const r = up.cross(forward).mul(-1);
+	const r = forward.cross(up).mul(1);
 	const u = up;
+	const t = r.cross(forward);
 	const f = forward;
 	const p = position;
 
 	var ori = [
 		[ r[0], r[1], r[2], 0 ],
-		[ u[0], u[1], u[2], 0 ],
+		[ t[0], t[1], t[2], 0 ],
 		[ f[0], f[1], f[2], 0 ],
 		[    0,    0,    0, 1 ]
-	];
+	].transpose();
 
 	var trans = [
 		[     1,     0,     0,    0 ],
 		[     0,     1,     0,    0 ],
 		[     0,     0,     1,    0 ],
-		[ -p[0], -p[1], -p[2],    1 ]
+		[  p[0],  p[1],  p[2],    1 ]
 	];
 
 	return trans.mat_mul(ori);
+	// return ori.mat_mul(trans);
 };
 
 Array.prototype.rotation = function(axis, angle)
@@ -427,6 +484,14 @@ Array.prototype.rotation = function(axis, angle)
 		[                   0,                    0,                    0, 1]
 	];
 };
+
+
+Array.prototype.scale = function(s)
+{
+	var m = [].I(4).mul(s);
+	m[3][3] = 1;
+	return m;
+}
 
 
 Array.prototype.quat_rotation = function(axis, angle)
@@ -461,29 +526,45 @@ Array.prototype.quat_to_matrix = function()
 	var a2 = a * a, b2 = b * b, c2 = c * c, d2 = d * d;
 
 	return [
-	    [ a2 + b2 - c2 - d2, 2 * (b*c - a*d)  , 2 * (b*d + a*c)  , 0],
-	    [ 2 * (b*c + a*d)  , a2 - b2 + c2 - d2, 2 * (c*d - a*b)  , 0],
-	    [ 2 * (b*d - a*c)  , 2 * (c*d + a*b)  , a2 - b2 - c2 + d2, 0],
+	    [ a2 + b2 - c2 - d2, 2*b*c - 2*a*d  , 2*b*d + 2*a*c  , 0],
+	    [ 2*b*c + 2*a*d  , a2 - b2 + c2 - d2, 2*c*d - 2*a*b  , 0],
+	    [ 2*b*d - 2*a*c  , 2*c*d + 2*a*b  , a2 - b2 - c2 + d2, 0],
 	    [ 0                , 0                , 0                , 1],
 	];
 };
 
+Array.prototype.quat_conjugate = function()
+{
+	return this.mul([-1, -1, -1, 1]);
+}
+
+Array.prototype.quat_inverse = function()
+{
+	const mag_2 = this.dot(this);
+	return this.quat_conjugate().mul(1/mag_2);
+}
 
 Array.prototype.quat_mul = function(q)
 {
-	var q0 = this;
-	var q1 = q;
+	// var q0 = this;
+	// var q1 = q;
 
-	var t3 = q0.slice(0, 3);
-	var o3 = q1.slice(0, 3);
+	// var t3 = q0.slice(0, 3);
+	// var o3 = q1.slice(0, 3);
 
-	var r = t3.cross(o3);
-	var w = t3.mul(q1[3]);
-	r = r.add(w);
-	w = o3.mul(q0[3]);
-	r = r.add(w);
+	// var r = t3.cross(o3);
+	// var w = t3.mul(q1[3]);
+	// r = r.add(w);
+	// w = o3.mul(q0[3]);
+	// r = r.add(w);
 
-	return r.concat(q0[3] * q1[3] - t3.dot(o3));
+	// return r.concat(q0[3] * q1[3] - t3.dot(o3));
+	return [
+	    this[3] * q[0] + this[0] * q[3] + this[1] * q[2] - this[2] * q[1],  // i
+	    this[3] * q[1] - this[0] * q[2] + this[1] * q[3] + this[2] * q[0],  // j
+	    this[3] * q[2] + this[0] * q[1] - this[1] * q[0] + this[2] * q[3],   // k
+	    this[3] * q[3] - this[0] * q[0] - this[1] * q[1] - this[2] * q[2],  // 1
+	];
 };
 
 
@@ -516,7 +597,7 @@ Math.ray = function(ray)
 					t = s + q;
 				}
 
-				return ray.position + ray.direction * t;
+				return ray.position.add(ray.direction.mul(t));
 			}
 		}
 	};

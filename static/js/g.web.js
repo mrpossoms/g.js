@@ -39,15 +39,30 @@ g.web = {
             this._view = [].I(4);
             this._proj = [].I(4);
             this._pos = [0,0,0];
-            this._sub = [0,0,1];
+            this._forward = [0,0,1];
             this._up = [0,1,0];
 
-            this.view = function(position, subject, up)
+            this.look_at = function(position, subject, up)
             {
                 if (position && subject && up)
                 {
-                    const forward = position.sub(subject).norm();
-                    this._view = [].view(position, forward, up.norm());
+                    this._pos = position;
+                    this._forward = subject.sub(position).norm();
+                    this._up = up.norm();
+                    this._view = [].view(this._pos, this._forward, this._up);
+                }
+
+                return this._view;
+            };
+
+            this.view = function(position, forward, up)
+            {
+                if (position && forward && up)
+                {
+                    this._pos = position;
+                    this._forward = forward.norm();
+                    this._up = up.norm();
+                    this._view = [].view(this._pos, this._forward, this._up);
                 }
 
                 return this._view;
@@ -57,6 +72,13 @@ g.web = {
             {
                 this._pos = p;
                 this.view(this._pos, this._sub, this._up);
+                return this;
+            };
+
+            this.up = function(u)
+            {
+                this._up = u;
+                this.view(this._up, this._sub, this._up);
                 return this;
             };
 
@@ -101,11 +123,10 @@ g.web = {
             create: function(img)
             {
                 const tex = gl.createTexture();
-
                 const wrap = g.web.gfx.texture._wraping;
                 const filter = g.web.gfx.texture._filtering;
 
-                img.onload = function()
+                // img.onload = function()
                 {
                     gl.bindTexture(gl.TEXTURE_2D, tex);
                     gl.texImage2D(
@@ -261,12 +282,31 @@ g.web = {
                                 }
                                 else
                                 {
-                                    gl.drawArrays(gl.TRIANGLES, 0, mesh_ref.positions.length);
+                                    gl.drawArrays(gl.TRIANGLES, 0, mesh_ref.positions.length / 9);
+                                }
+                            },
+                            draw_lines: function()
+                            {
+                                if (mesh_ref.indices)
+                                {
+                                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh_ref.indices);
+                                    gl.drawElements(
+                                        gl.LINES,
+                                        mesh_ref.element_count,
+                                        gl.UNSIGNED_SHORT,
+                                        0
+                                    );
+                                }
+                                else
+                                {
+                                    gl.drawArrays(gl.LINES, 0, mesh_ref.positions.length / 3);
                                 }
                             }
                         };
                     }
                 };
+
+                if (!mesh_json) { return mesh; }
 
                 if (mesh_json.positions)
                 {
@@ -315,6 +355,7 @@ g.web = {
             {
                 return fetch(path).then(function(res)
                 {
+                    console.log('Loading: ' + path);
                     const type = res.headers.get('content-type');
                     const type_stem = type.split('/')[0];
                     var bytes_to_read = parseInt(res.headers.get('content-length'));
@@ -326,11 +367,13 @@ g.web = {
                             var img = new Image();
                             img.src = res.url;
                             g.web.assets[path] = img;
+                            console.log('Finished: ' + path);
                         } break;
 
                         case 'audio':
                         {
                             g.web.assets[path] = new Audio(res.url);
+                            console.log('Finished: ' + path);
                         } break;
                     }
 
@@ -341,15 +384,29 @@ g.web = {
                         case 'application/json; charset=UTF-8':
                         {
                             g.web.assets[path] = '';
-                            return res.body.getReader().read().then(function(res)
-                            {
-                                g.web.assets[path] += (new TextDecoder()).decode(res.value);
-                                bytes_to_read -= res.value.length;
-                                if (res.done || bytes_to_read == 0)
-                                {
-                                    g.web.assets[path] = JSON.parse(g.web.assets[path]);
-                                }
+                            return res.json().then(function (json) {
+                                g.web.assets[path] = json;
+                                console.log('Finished OK: ' + path);
                             });
+                            // return res.body.getReader().read().then(function(res)
+                            // {
+                            //     g.web.assets[path] += (new TextDecoder()).decode(res.value);
+                            //     bytes_to_read -= res.value.length;
+                            //     console.log('Loading: ' + path + ' bytes remaining: ' + bytes_to_read);
+                            //     if (res.done)
+                            //     {
+                            //         if (bytes_to_read == 0)
+                            //         {
+                            //             g.web.assets[path] = JSON.parse(g.web.assets[path]);
+                            //             console.log('Finished OK: ' + path);
+                            //             return true;
+                            //         }
+                            //         else
+                            //         {
+                            //             console.log('Finished Error: ' + path);
+                            //         }
+                            //     }
+                            // });
                         } break;
 
                         case 'text/plain':
@@ -358,6 +415,7 @@ g.web = {
                             g.web.assets[path] = '';
                             return res.body.getReader().read().then(function(res)
                             {
+                                console.log('Loading: ' + path + ' bytes remaining: ' + bytes_to_read);
                                 g.web.assets[path] += (new TextDecoder()).decode(res.value);
                             });
                         } break;
@@ -366,15 +424,23 @@ g.web = {
             }
 
             var promises = [];
-	for (var i = 0; i < asset_arr.length; i++)
-	{
-		promises.push(load_resource(asset_arr[i]));
-	}
-
-            Promise.all(promises).then(function(values)
+        	// for (var i = 0; i < asset_arr.length; i++)
+        	// {
+        	// 	promises.push(load_resource(asset_arr[i]));
+        	// }
+            function load(idx)
             {
-                on_finish();
-            });
+                if (idx >= asset_arr.length) { return this; }
+                return load_resource(asset_arr[idx]).then(function(){
+                    return load(idx + 1);
+                })
+            }
+
+            // Promise.all(promises).then(function(values)
+            // {
+            //     on_finish();
+            // });
+            load(0).then(function(){ on_finish(); })
 		},
 	},
 
@@ -433,7 +499,10 @@ g.web = {
 
 		on_press: function(on_press_func)
 		{
-			return this;
+			g.web._canvas.onclick = function()
+            {
+                on_press_func();
+            };
 		}
 	},
 
@@ -448,12 +517,12 @@ g.web = {
 			{
 				document.onkeydown = function(key)
 				{
-					g.web.key._map[key.key] = true;
+					g.web.key._map[key.key.toLowerCase()] = true;
 				};
 
 				document.onkeyup = function(key)
 				{
-					g.web.key._map[key.key] = false;
+					g.web.key._map[key.key.toLowerCase()] = false;
 				};
 
 				g.web.key._initalized = true;

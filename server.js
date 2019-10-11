@@ -1,3 +1,4 @@
+var path = require('path');
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
@@ -17,6 +18,8 @@ function new_player_id()
 
 	return id;
 }
+
+// game.server.setup(50);
 
 // socket io setup
 io.on('connection', function(player) {
@@ -41,8 +44,22 @@ io.on('connection', function(player) {
 const dt = 1 / 30;
 setInterval(function() {
 	game.server.update(dt);
+
+	for (var player_key in game.server.players)
+	{
+		var player = game.server.players[player_key];
+		game.server.player.update(player, dt);
+	}
 }, dt * 1000);
 
+/*
+app.get('/', function(res, req)
+{
+	res.sendFile('static/index.html');
+});
+*/
+
 // express setup
-app.use(express.static('static'));
-http.listen(8080, function() { console.log('Running!'); });
+app.use(express.static(path.join(__dirname, 'static')));
+//app.use(express.static('static'));
+http.listen(3001, function() { console.log('Running!'); });
