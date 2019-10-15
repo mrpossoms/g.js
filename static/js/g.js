@@ -567,21 +567,30 @@ Array.prototype.quat_mul = function(q)
 	];
 };
 
-Object.prototype.for_each = function(cb)
+function for_each(obj, cb)
 {
-	for (var k in Object.keys(this))
+	if (!obj) { return obj; }
+	if (obj.constructor === Array)
 	{
-		cb(this[k], k, this);
+		return obj.for_each(cb);
 	}
+	else
+	{
+		for (var k in obj)
+		{
+			if (!obj.hasOwnProperty(k)) { continue; }
+			cb(obj[k], k, this);
+		}
 
-	return this;
-};
+		return obj;
+	}
+}
 
 Array.prototype.for_each = function(cb)
 {
-	for (var k in this)
+	for (var i = 0; i < this.length; ++i)
 	{
-		cb(this[k], k, this);
+		cb(this[i], i, this);
 	}
 
 	return this;
@@ -699,5 +708,10 @@ Math.ray = function(ray)
 try
 {
 	module.exports.g = g;
+	module.exports.for_each = for_each;
 }
-catch(e) { console.log('Not a node.js module'); }
+catch(e)
+{
+	g.for_each = for_each;
+	console.log('Not a node.js module');
+}
