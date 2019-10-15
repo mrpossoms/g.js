@@ -123,8 +123,8 @@ g.web = {
             create: function(img)
             {
                 const tex = gl.createTexture();
-                const wrap = g.web.gfx.texture._wraping;
-                const filter = g.web.gfx.texture._filtering;
+                const wrap = g.web.gfx.texture._wraping || gl.REPEAT;
+                const filter = g.web.gfx.texture._filtering || gl.LINEAR;
 
                 // img.onload = function()
                 {
@@ -368,6 +368,22 @@ g.web = {
                             img.src = res.url;
                             g.web.assets[path] = img;
                             console.log('Finished: ' + path);
+
+                            // create webgl texture automatically
+                            img.onload = function()
+                            {
+                                const fields = path.split('.');
+                                const name = fields[0];
+                                const tex_name = name.replace('imgs', 'tex');
+
+                                var chain = g.web.gfx.texture.smooth().repeating();
+
+                                if (fields.indexOf('pixelated') > 0) { chain = chain.pixelated(); }
+                                if (fields.indexOf('smooth') > 0) { chain = chain.smooth(); }
+                                if (fields.indexOf('repeating') > 0) { chain = chain.repeating(); }
+                                if (fields.indexOf('clamped') > 0) { chain = chain.clamped(); }
+                                g.web.assets[tex_name] = chain.create(img);
+                            };
                         } break;
 
                         case 'audio':
@@ -386,27 +402,15 @@ g.web = {
                             g.web.assets[path] = '';
                             return res.json().then(function (json) {
                                 g.web.assets[path] = json;
+
+                                if (path.indexOf('meshes') > -1)
+                                {
+                                    const mesh_name = path.replace('meshes', 'mesh').replace('.json', '');
+                                    g.web.assets[mesh_name] = g.web.gfx.mesh.create(g.web.assets[path]);
+                                }
+
                                 console.log('Finished OK: ' + path);
                             });
-                            // return res.body.getReader().read().then(function(res)
-                            // {
-                            //     g.web.assets[path] += (new TextDecoder()).decode(res.value);
-                            //     bytes_to_read -= res.value.length;
-                            //     console.log('Loading: ' + path + ' bytes remaining: ' + bytes_to_read);
-                            //     if (res.done)
-                            //     {
-                            //         if (bytes_to_read == 0)
-                            //         {
-                            //             g.web.assets[path] = JSON.parse(g.web.assets[path]);
-                            //             console.log('Finished OK: ' + path);
-                            //             return true;
-                            //         }
-                            //         else
-                            //         {
-                            //             console.log('Finished Error: ' + path);
-                            //         }
-                            //     }
-                            // });
                         } break;
 
                         case 'text/plain':

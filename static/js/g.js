@@ -567,6 +567,99 @@ Array.prototype.quat_mul = function(q)
 	];
 };
 
+Object.prototype.for_each = function(cb)
+{
+	for (var k in Object.keys(this))
+	{
+		cb(this[k], k, this);
+	}
+
+	return this;
+};
+
+Array.prototype.for_each = function(cb)
+{
+	for (var k in this)
+	{
+		cb(this[k], k, this);
+	}
+
+	return this;
+};
+
+Array.prototype.accumulate = function(dst_key, src_key, scale)
+{
+	scale = scale || 1;
+
+	for (var i = this.length; i--;)
+	{
+		this[i][dst_key] = this[i][dst_key].add(this[i][src_key].mul(scale));
+	}
+};
+
+Array.prototype.message_queue = function() {
+	this.time = 0;
+	this.peek = function()
+	{
+		if (this.empty()) { return ''; }
+		return this[this.length - 1];
+	};
+
+	this.empty = function() { return this.length == 0; };
+
+	this.push_msg = function(msg)
+	{
+		this.push(msg);
+		this.time = msg.split(' ').length + 1;
+	};
+
+	this.update = function(dt)
+	{
+	  this.time -= dt;
+
+	  if (this.time <= 0 && !this.empty())
+	  {
+	    this.pop();
+	    if (!this.empty())
+	    {
+	      this.time = this.peek().split(' ').length;
+	    }
+	  }
+	}
+
+	return this;
+};
+
+// this.q = [];
+// this.time = 0;
+// this.peek = function()
+// {
+//   if (this.empty()) { return ''; }
+//   return this.q[this.q.length - 1];
+// };
+
+// this.empty = function() { return this.q.length == 0; }
+
+// this.push_msg = function(msg)
+// {
+//   this.q.push(msg);
+//   this.time = msg.split(' ').length + 1;
+// };
+
+// this.update = function(dt)
+// {
+//   this.time -= dt;
+
+//   if (this.time <= 0 && !this.empty())
+//   {
+//     this.q.pop();
+//     if (!this.empty())
+//     {
+//       this.time = this.peek().split(' ').length;
+//     }
+//   }
+// };
+
 
 Math.ray = function(ray)
 {
