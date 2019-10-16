@@ -30,7 +30,7 @@ const g = {
 	start: function()
 	{
 		var req_frame = window.requestAnimationFrame       ||
-                        window.webkitRequestAnimationFrame ||
+                                window.webkitRequestAnimationFrame ||
 		                window.mozRequestAnimationFrame    ||
 		                window.oRequestAnimationFrame      ||
 		                window.msRequestAnimationFrame;
@@ -606,69 +606,35 @@ Array.prototype.accumulate = function(dst_key, src_key, scale)
 	}
 };
 
-Array.prototype.message_queue = function() {
-	this.time = 0;
+Array.prototype.timed_queue = function() {
+	this.last_idx = function() { return this.length - 1 < 0 ? 0 : this.length - 1; },
 	this.peek = function()
 	{
-		if (this.empty()) { return ''; }
-		return this[this.length - 1];
+		if (this.empty()) { return null; }
+		return this[this.last_idx()].value;
 	};
 
 	this.empty = function() { return this.length == 0; };
 
-	this.push_msg = function(msg)
+	this.push = function(val, time)
 	{
-		this.push(msg);
-		this.time = msg.split(' ').length + 1;
+		const v = val.value || val;
+		const t = val.time || time;
+		this.unshift({ value: v, time: t });
 	};
 
 	this.update = function(dt)
 	{
-	  this.time -= dt;
+          if (this.empty()) { return this; }
 
-	  if (this.time <= 0 && !this.empty())
-	  {
-	    this.pop();
-	    if (!this.empty())
-	    {
-	      this.time = this.peek().split(' ').length;
-	    }
-	  }
+	  this[this.last_idx()].time -= dt;
+          const time = this[this.last_idx()].time;
+
+	  if (time <= 0) { this.pop(); }
 	}
 
 	return this;
 };
-
-// this.q = [];
-// this.time = 0;
-// this.peek = function()
-// {
-//   if (this.empty()) { return ''; }
-//   return this.q[this.q.length - 1];
-// };
-
-// this.empty = function() { return this.q.length == 0; }
-
-// this.push_msg = function(msg)
-// {
-//   this.q.push(msg);
-//   this.time = msg.split(' ').length + 1;
-// };
-
-// this.update = function(dt)
-// {
-//   this.time -= dt;
-
-//   if (this.time <= 0 && !this.empty())
-//   {
-//     this.q.pop();
-//     if (!this.empty())
-//     {
-//       this.time = this.peek().split(' ').length;
-//     }
-//   }
-// };
-
 
 Math.ray = function(ray)
 {
