@@ -671,6 +671,43 @@ Math.ray = function(ray)
 	};
 };
 
+Math.random.unit_vector = function(i)
+{
+	i = i || Math.floor(Math.random() * 1000);
+
+	// compute random rotation axis look up table
+	if (!this._uv_lut)
+	{
+		this._uv_lut = [];
+		for(var _ = 1000; _--;)
+		{
+		    this._uv_lut.push([].random_unit());
+		}
+	}
+
+	return this._uv_lut[i];
+}
+
+Math.model_matrix = function(obj)
+{
+	var M = [].I(4);
+
+	if ('scale' in obj)
+	{
+		M = M.mat_mul([].scale(obj.scale))
+	}
+	if ('q' in obj)
+	{
+		M = M.mat_mul(obj.q.quat_inverse().quat_to_matrix());
+	}
+	if ('position' in obj)
+	{
+		M = M.mat_mul([].translate(obj.position));
+	}
+
+	return M;
+};
+
 try
 {
 	module.exports.g = g;

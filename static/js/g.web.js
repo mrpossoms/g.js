@@ -36,6 +36,7 @@ g.web = {
             }
         },
         camera: function() {
+            this._q = [0,0,0,1];
             this._view = [].I(4);
             this._proj = [].I(4);
             this._pos = [0,0,0];
@@ -66,6 +67,18 @@ g.web = {
                 }
 
                 return this._view;
+            };
+
+            this.tilt = function(d_yaw, d_pitch, d_roll)
+            {
+                const dqx = [].quat_rotation([1, 0, 0], d_pitch);
+                const dqy = [].quat_rotation([0, 1, 0], d_yaw);
+                const dqz = [].quat_rotation([0, 0, 1], d_roll);
+                const dq = dqx.quat_mul(dqy).quat_mul(dqz);
+                this.q = this.q.quat_mul(dq);
+
+                this._up = q.quat_rotate_vector([0, 1, 0]);
+                this._forward = q.quat_rotate_vector([0, 0, 1]);
             };
 
             this.position = function(p)
@@ -471,20 +484,20 @@ g.web = {
 			return this;
 		},
 
-        on_delta: function(on_delta_func)
+        on_pointer_lock_change: function(on_pointer_lock_func)
         {
             if ("onpointerlockchange" in document)
             {
                 document.addEventListener('pointerlockchange', function(e)
                 {
-                    on_delta_func(e);
+                    on_pointer_lock_func(e);
                 }, false);
             }
             else if ("onmozpointerlockchange" in document)
             {
                 document.addEventListener('mozpointerlockchange', function(e)
                 {
-                    on_delta_func(e);
+                    on_pointer_lock_func(e);
                 }, false);
             }
         },
