@@ -1,6 +1,6 @@
 g.web = {
 	_draw: function() {},
-	_on_message: function() {},
+	_on_message: null,
 	_canvas: null,
 
     gfx: {
@@ -30,7 +30,7 @@ g.web = {
 
                 window.gl = gl;
 
-                document.body.onresize();
+                if (document.body.onresize) { document.body.onresize(); }
 
                 return true;
             }
@@ -101,7 +101,7 @@ g.web = {
             {
                 fov = fov || Math.PI / 2;
                 near = near || 0.1;
-                far = far || 100;
+                far = far || 1000;
 
                 this._proj = [].perspective(fov, g.web.gfx.aspect(), near, far);
 
@@ -218,6 +218,19 @@ g.web = {
                     vertices: {},
                     shader_configs: {},
 
+                    buffer: function(buffer_name)
+                    {
+                        const mesh_ref = this;
+
+                        return {
+                            set_data: function(v)
+                            {
+                                gl.bindBuffer(gl.ARRAY_BUFFER, mesh_ref.vertices[buffer_name]);
+                                gl.bufferData(gl.ARRAY_BUFFER, v.as_Float32Array(), gl.DYNAMIC_DRAW);
+                            },
+                        };
+                    },
+
                     using_shader: function(shader_name)
                     {
                         const mesh_ref = this;
@@ -271,6 +284,16 @@ g.web = {
                                         gl.uniformMatrix4fv(loc, false, v);
                                         return shader_ref;
                                     },
+                                    vec3: function(v)
+                                    {
+                                        gl.uniform3fv(loc, v.as_Float32Array(), 1);
+                                        return shader_ref;
+                                    },
+                                    float: function(s)
+                                    {
+                                        gl.uniform1f(loc, s);
+                                        return shader_ref;
+                                    },
                                     texture: function(tex)
                                     {
                                         gl.activeTexture(gl.TEXTURE0 + tex_unit);
@@ -312,11 +335,28 @@ g.web = {
                                 }
                                 else
                                 {
-                                    gl.drawArrays(gl.LINES, 0, mesh_ref.positions.length / 3);
+                                    gl.drawArrays(gl.LINES, 0, mesh_ref.element_count / 3);
+                                }
+                            },
+                            draw_points: function()
+                            {
+                                if (mesh_ref.indices)
+                                {
+                                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh_ref.indices);
+                                    gl.drawElements(
+                                        gl.POINTS,
+                                        mesh_ref.element_count,
+                                        gl.UNSIGNED_SHORT,
+                                        0
+                                    );
+                                }
+                                else
+                                {
+                                    gl.drawArrays(gl.POINTS, 0, mesh_ref.element_count / 3);
                                 }
                             }
                         };
-                    }
+                    },
                 };
 
                 if (!mesh_json) { return mesh; }
@@ -333,6 +373,13 @@ g.web = {
                     mesh.vertices.texture_coords = gl.createBuffer();
                     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertices.texture_coords);
                     gl.bufferData(gl.ARRAY_BUFFER, mesh_json.texture_coords.as_Float32Array(), gl.STATIC_DRAW);
+                }
+
+                if (mesh_json.colors)
+                {
+                    mesh.vertices.colors = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertices.colors);
+                    gl.bufferData(gl.ARRAY_BUFFER, mesh_json.colors.as_Float32Array(), gl.STATIC_DRAW);
                 }
 
                 if (mesh_json.normals)
@@ -355,56 +402,6 @@ g.web = {
                 }
 
                 return mesh;
-            }
-        },
-        sprite: {
-            create: function(aesprite_json)
-            {
-                const img_w = aesprite_json.meta.size.w;
-                const img_h = aesprite_json.meta.size.h;
-                var frames = [];
-                for_each(aesprite_json.frames, (frame_meta) => {
-                    const frame = frame_meta.frame;
-                    frames.push({
-                        x: frame.x / img_w,
-                        y: frame.y / img_h,
-                        w: frame.w / img_w,
-                        h: frame.h / img_h,
-                        sec: frame_meta.duration / 1000
-                    });
-                });
-
-                return function() {
-                    this.frame_idx = 0;
-                    this.frame_duration = frames[0].sec;
-
-                    this.tick = function(dt)
-                    {
-                        while (dt > 0)
-                        {
-                            const prev_dur = this.frame_duration;
-                            this.frame_duration -= dt;
-
-                            if (this.frame_duration <= 0)
-                            {
-                                this.frame_idx = (this.frame_idx + 1) % frames.length;
-                                this.frame_duration = frames[this.frame_idx].sec;
-                            }
-
-                            dt -= prev_dur;
-                        }
-                    };
-
-                    this.origin = function()
-                    {
-                        return [ frames[this.frame_idx].x,  frames[this.frame_idx].y ];
-                    };
-
-                    this.size = function()
-                    {
-                        return [ frames[this.frame_idx].w,  frames[this.frame_idx].h ];
-                    };
-                };
             }
         }
     },
@@ -519,9 +516,17 @@ g.web = {
 		{
 			g.web._canvas.addEventListener("touchmove", function(e)
 			{
+                const t = e.touches[0];
 				e.preventDefault();
-                g.web.pointer._last = [0, 0];
-				on_move_func({ x: 0, y: 0 });
+
+                if (g.web.pointer._last)
+                {
+                    t.movementX = t.clientX - g.web.pointer._last[0];
+                    t.movementY = t.clientY - g.web.pointer._last[1];
+                }
+
+				on_move_func(t);
+                g.web.pointer._last = [ t.clientX, t.clientY ];
 			}, false);
 
 			g.web._canvas.addEventListener("mousemove", function(e)
@@ -533,6 +538,14 @@ g.web = {
 
 			return this;
 		},
+
+        on_scroll: function(on_scoll_func)
+        {
+            g.web._canvas.addEventListener("scroll", function(e)
+            {
+                on_scoll_func(e);
+            });
+        },
 
         on_pointer_lock_change: function(on_pointer_lock_func)
         {
@@ -566,11 +579,21 @@ g.web = {
 
 		on_press: function(on_press_func)
 		{
-			g.web._canvas.onclick = function()
+			g.web._canvas.ontouchstart = g.web._canvas.onmousedown = function(e)
             {
-                on_press_func();
+                const t = e.touches[0];
+                g.web.pointer._last = [ t.clientX, t.clientY ];
+                on_press_func(e);
             };
-		}
+		},
+
+        on_release: function(on_release_func)
+        {
+            g.web._canvas.ontouchend = g.web._canvas.ontouchcancel = g.web._canvas.onmouseup = function()
+            {
+                on_release_func();
+            };
+        }
 	},
 
 	key:
@@ -601,20 +624,35 @@ g.web = {
 
 	on_message: function(f) { g.web._on_message = f; return this; },
 
-	canvas: function(dom_element)
+	canvas: function(dom_element, opts)
 	{
+        opts = opts || {};
 		g.web._canvas = dom_element;
-		document.body.onresize = function(e) {
-			g.web._canvas.width = document.body.clientWidth;
-			g.web._canvas.height = document.body.clientHeight;
-            gl.viewport(0, 0, document.body.clientWidth, document.body.clientHeight);
-		};
+
+        if (opts.fill)
+        {
+            document.body.onresize = function(e) {
+                g.web._canvas.width = document.body.clientWidth;
+                g.web._canvas.height = document.body.clientHeight;
+                gl.viewport(0, 0, document.body.clientWidth, document.body.clientHeight);
+            };
+        }
+        else if (!opts.fixed_size)
+        {
+           document.body.onresize = function(e) {
+               g.web._canvas.width = g.web._canvas.clientWidth;
+               g.web._canvas.height = g.web._canvas.clientHeight;
+               gl.viewport(0, 0, g.web._canvas.clientWidth, g.web._canvas.clientHeight);
+           };
+        }
 
         g.web._canvas.requestPointerLock = g.web._canvas.requestPointerLock ||
-                                           g.web._canvas.mozRequestPointerLock;
+                                           g.web._canvas.mozRequestPointerLock ||
+                                           function(){};
 
         document.exitPointerLock = document.exitPointerLock ||
-                                   document.mozExitPointerLock;
+                                   document.mozExitPointerLock ||
+                                   function(){};
 
         g.web._canvas.requestPointerLock();
 
