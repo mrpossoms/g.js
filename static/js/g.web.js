@@ -356,6 +356,56 @@ g.web = {
 
                 return mesh;
             }
+        },
+        sprite: {
+            create: function(aesprite_json)
+            {
+                const img_w = aesprite_json.meta.size.w;
+                const img_h = aesprite_json.meta.size.h;
+                var frames = [];
+                for_each(aesprite_json.frames, (frame_meta) => {
+                    const frame = frame_meta.frame;
+                    frames.push({
+                        x: frame.x / img_w,
+                        y: frame.y / img_h,
+                        w: frame.w / img_w,
+                        h: frame.h / img_h,
+                        sec: frame_meta.duration / 1000
+                    });
+                });
+
+                return function() {
+                    this.frame_idx = 0;
+                    this.frame_duration = frames[0].sec;
+
+                    this.tick = function(dt)
+                    {
+                        while (dt > 0)
+                        {
+                            const prev_dur = this.frame_duration;
+                            this.frame_duration -= dt;
+
+                            if (this.frame_duration <= 0)
+                            {
+                                this.frame_idx = (this.frame_idx + 1) % frames.length;
+                                this.frame_duration = frames[this.frame_idx].sec;
+                            }
+
+                            dt -= prev_dur;
+                        }
+                    };
+
+                    this.origin = function()
+                    {
+                        return [ frames[this.frame_idx].x,  frames[this.frame_idx].y ];
+                    };
+
+                    this.size = function()
+                    {
+                        return [ frames[this.frame_idx].w,  frames[this.frame_idx].h ];
+                    };
+                };
+            }
         }
     },
 

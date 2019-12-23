@@ -30,7 +30,7 @@ const g = {
 	start: function()
 	{
 		var req_frame = window.requestAnimationFrame       ||
-                                window.webkitRequestAnimationFrame ||
+		                window.webkitRequestAnimationFrame ||
 		                window.mozRequestAnimationFrame    ||
 		                window.oRequestAnimationFrame      ||
 		                window.msRequestAnimationFrame;
