@@ -129,7 +129,7 @@ g.web = {
             _wraping: null,
 
             repeating: function() { this._wraping = gl.REPEAT; return this; },
-            clamped: function() { this._wraping = gl.CLAMP; return this; },
+            clamped: function() { this._wraping = gl.CLAMP_TO_EDGE; return this; },
             pixelated: function() { this._filtering = gl.NEAREST; return this; },
             smooth: function() { this._filtering = gl.LINEAR; return this; },
 
@@ -289,6 +289,11 @@ g.web = {
                                         gl.uniform3fv(loc, v.as_Float32Array(), 1);
                                         return shader_ref;
                                     },
+                                    vec4: function(v)
+                                    {
+                                        gl.uniform4fv(loc, v.as_Float32Array(), 1);
+                                        return shader_ref;
+                                    },
                                     float: function(s)
                                     {
                                         gl.uniform1f(loc, s);
@@ -319,6 +324,23 @@ g.web = {
                                 else
                                 {
                                     gl.drawArrays(gl.TRIANGLES, 0, mesh_ref.positions.length / 9);
+                                }
+                            },
+                            draw_tri_strip: function()
+                            {
+                                if (mesh_ref.indices)
+                                {
+                                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh_ref.indices);
+                                    gl.drawElements(
+                                        gl.TRIANGLE_STRIP,
+                                        mesh_ref.element_count,
+                                        gl.UNSIGNED_SHORT,
+                                        0
+                                    );
+                                }
+                                else
+                                {
+                                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, mesh_ref.element_count / 3);
                                 }
                             },
                             draw_lines: function()
@@ -410,6 +432,33 @@ g.web = {
                 const img_w = aesprite_json.meta.size.w;
                 const img_h = aesprite_json.meta.size.h;
                 var frames = [];
+                var tags = {};
+
+                for_each(aesprite_json.meta.frameTags, (frame_tag) => {
+                    tags[frame_tag.name] = [];
+                    switch (frame_tag.direction)
+                    {
+                        case 'forward':
+                            for (var i = frame_tag.from; i <= frame_tag.to; ++i)
+                            {
+                                tags[frame_tag.name].push(i);
+                            }
+                            break;
+                        case 'pingpong':
+                            for (var i = frame_tag.from; i <= frame_tag.to; ++i)
+                            {
+                                tags[frame_tag.name].push(i);
+                            }
+                            for (var i = frame_tag.to; i >= frame_tag.from; --i)
+                            {
+                                tags[frame_tag.name].push(i);
+                            }
+                            break;
+                    }
+
+                    tag = tags[frame_tag.name];
+                });
+
                 for_each(aesprite_json.frames, (frame_meta) => {
                     const frame = frame_meta.frame;
                     frames.push({
@@ -424,6 +473,14 @@ g.web = {
                 return function() {
                     this.frame_idx = 0;
                     this.frame_duration = frames[0].sec;
+                    this.tag = tag;
+                    this.tags = tags;
+                    this.queue = [];
+
+                    this.current_frame = function()
+                    {
+                        return frames[this.tag[this.frame_idx]];
+                    }
 
                     this.tick = function(dt)
                     {
@@ -434,22 +491,37 @@ g.web = {
 
                             if (this.frame_duration <= 0)
                             {
-                                this.frame_idx = (this.frame_idx + 1) % frames.length;
-                                this.frame_duration = frames[this.frame_idx].sec;
+                                this.frame_idx++;
+                                if (this.frame_idx >= this.tag.length)
+                                {
+                                    if (this.queue.length > 0)
+                                    {
+                                        this.tag = this.queue.pop();
+                                    }
+
+                                    this.frame_idx = 0;
+                                }
+                                this.frame_duration = this.current_frame().sec;
                             }
 
                             dt -= prev_dur;
                         }
                     };
 
+                    this.set = function(tag)
+                    {
+                        this.frame_idx = 0;
+                        this.tag = this.tags[tag];
+                    }
+
                     this.origin = function()
                     {
-                        return [ frames[this.frame_idx].x,  frames[this.frame_idx].y ];
+                        return [ this.current_frame().x,  this.current_frame().y ];
                     };
 
                     this.size = function()
                     {
-                        return [ frames[this.frame_idx].w,  frames[this.frame_idx].h ];
+                        return [ this.current_frame().w,  this.current_frame().h ];
                     };
                 };
             }
@@ -629,9 +701,16 @@ g.web = {
 
 		on_press: function(on_press_func)
 		{
-			g.web._canvas.ontouchstart = g.web._canvas.onmousedown = function(e)
+			g.web._canvas.ontouchstart = function(e)
             {
                 const t = e.touches[0];
+                g.web.pointer._last = [ t.clientX, t.clientY ];
+                on_press_func(e);
+            };
+
+            g.web._canvas.onmousedown = function(e)
+            {
+                const t = e;
                 g.web.pointer._last = [ t.clientX, t.clientY ];
                 on_press_func(e);
             };

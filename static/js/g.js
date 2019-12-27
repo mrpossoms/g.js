@@ -4,7 +4,7 @@ const g = {
 	is_running: true,
 
 	timer: function(){
-		this._last = 0;
+		this._last = (new Date()).getTime();
 		this._start = (new Date()).getTime();
 
 		this.tick = function()
@@ -39,9 +39,13 @@ const g = {
 		// if we are a browser, setup socket.io to connect to the server
 		if (g.web)
 		{
-			g.web._socket = io();
-			g.web._socket.on('message', g.web._on_message);
-			g.web.socket = function() { return g.web._socket; }
+            try
+            {
+    			g.web._socket = io();
+    			g.web._socket.on('message', g.web._on_message);
+    			g.web.socket = function() { return g.web._socket; }
+            }
+            catch(e) {}
             if (!g.web.gfx._initalize()) { return; }
 		}
 
@@ -132,7 +136,10 @@ Array.prototype.mul = function(v)
 			for (var i = this.length; i--;) w[i] = this[i] * v;
 		}
 	}
-	else if (v.constructor === Array && typeof v[0] === 'number') { for (var i = this.length; i--;) w[i] = this[i] * v[i]; }
+	else if (v.constructor === Array && typeof v[0] === 'number')
+    {
+        return this.mat_mul(v);
+    }
 
 	return w;
 };
@@ -488,8 +495,21 @@ Array.prototype.rotation = function(axis, angle)
 
 Array.prototype.scale = function(s)
 {
-	var m = [].I(4).mul(s);
-	m[3][3] = 1;
+    var m;
+    if (typeof(s) === 'number')
+    {
+        m = [].I(4).mul(s);
+        m[3][3] = 1;
+    }
+    else if (s instanceof Array)
+    {
+        m = [].I(s.length);
+        for (var i = s.length; i--;)
+        {
+            m[i][i] = s[i];
+        }
+    }
+
 	return m;
 }
 
