@@ -39,13 +39,16 @@ const g = {
 		// if we are a browser, setup socket.io to connect to the server
 		if (g.web)
 		{
-            try
-            {
-    			g.web._socket = io();
-    			g.web._socket.on('message', g.web._on_message);
-    			g.web.socket = function() { return g.web._socket; }
-            }
-            catch(e) {}
+			g.web._socket = io();
+			g.web._socket.binaryType = 'arraybuffer';
+			g.web._socket.on('message', g.web._on_message);
+
+			for (var e in g.web._on_event)
+			{
+				g.web._socket.on(e, g.web._on_event[e]);
+			}
+
+			g.web.socket = function() { return g.web._socket; }
             if (!g.web.gfx._initalize()) { return; }
 		}
 
@@ -136,10 +139,7 @@ Array.prototype.mul = function(v)
 			for (var i = this.length; i--;) w[i] = this[i] * v;
 		}
 	}
-	else if (v.constructor === Array && typeof v[0] === 'number')
-    {
-        return this.mat_mul(v);
-    }
+	else if (v.constructor === Array && typeof v[0] === 'number') { for (var i = this.length; i--;) w[i] = this[i] * v[i]; }
 
 	return w;
 };
@@ -340,14 +340,27 @@ Array.prototype.flatten = function()
 	{
 		for (var i = 0; i < this.length; ++i)
 		{
-			v = v.concat(this[i]);
+			v = v.concat(this[i].flatten());
 		}
 	}
 
 	return v;
 };
 
-Array.prototype.as_Float32Array = function(first_argument) {
+Array.prototype.as_Float32Array_bin = function() {
+	const flat = this.flatten();
+	var buf = new ArrayBuffer(flat.length * 4);
+	var a = new Float32Array(buf);
+
+	for (var i = flat.length; i--;)
+	{
+		a[i] = flat[i];
+	}
+
+	return buf;
+};
+
+Array.prototype.as_Float32Array = function() {
 	return new Float32Array(this.flatten());
 };
 
@@ -419,19 +432,26 @@ Array.prototype.translate = function(t)
 	];
 };
 
-Array.prototype.perspective = function(fov, aspect, near, far)
+Array.prototype.perspective = function(fov, aspect, n, f)
 {
 	const a = Math.tan(Math.PI * 0.5 - 0.5 * fov);
-	const fsn = far - near;
-	const fpn = far + near;
-	const ftn = far * near;
+	const fsn = f - n;
+	const fpn = f + n;
+	const ftn = f * n;
 
 	return [
 	       [  a/aspect,         0,          0,         0 ],
 	       [         0,         a,          0,         0 ],
 	       [         0,         0,   -fpn/fsn,        -1 ],
-	       [         0,         0, -2*ftn/fsn,         1 ]
+	       [         0,         0, -2*ftn/fsn,         0 ]
 	];
+
+	// return [
+	//        [  a/aspect,         0,          0,         0 ],
+	//        [         0,         a,          0,         0 ],
+	//        [         0,         0,   -fpn/fsn,        -1 ],
+	//        [         0,         0, -2*ftn/fsn,         1 ]
+	// ];
 };
 
 Array.prototype.orthographic = function(r, l, t, b, n, f)
@@ -460,11 +480,11 @@ Array.prototype.view = function(position, forward, up)
 	const p = position;
 
 	var ori = [
-		[ r[0], r[1], r[2], 0 ],
-		[ t[0], t[1], t[2], 0 ],
-		[ f[0], f[1], f[2], 0 ],
+		[ r[0], t[0], f[0], 0 ],
+		[ r[1], t[1], f[1], 0 ],
+		[ r[2], t[2], f[2], 0 ],
 		[    0,    0,    0, 1 ]
-	].transpose();
+	];
 
 	var trans = [
 		[     1,     0,     0,    0 ],
@@ -473,8 +493,9 @@ Array.prototype.view = function(position, forward, up)
 		[  p[0],  p[1],  p[2],    1 ]
 	];
 
+	//return ori;
 	return trans.mat_mul(ori);
-	// return ori.mat_mul(trans);
+	//return ori.mat_mul(trans);
 };
 
 Array.prototype.rotation = function(axis, angle)
