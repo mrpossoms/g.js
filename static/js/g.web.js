@@ -168,9 +168,9 @@ g.web = {
 			create: function(img)
 			{
 				const tex = gl.createTexture();
-				const wrap = g.web.gfx.texture._wraping || gl.REPEAT;
 				const filter = g.web.gfx.texture._filtering || gl.LINEAR;
-
+				var wrap = g.web.gfx.texture._wraping || gl.REPEAT;
+				
 				function is_power_of_2(n) { return (n != 0) && ((n & (n - 1))) == 0; }
 
 				if (!is_power_of_2(img.width) || !is_power_of_2(img.height)) { wrap = gl.CLAMP_TO_EDGE; }
