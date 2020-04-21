@@ -17,7 +17,7 @@ module.exports.server = {
 		},
 		update: function(player)
 		{
-			console.log('player: ' + player.id + ' tick');
+
 		},
 		disconnected: function(player)
 		{
@@ -27,8 +27,6 @@ module.exports.server = {
 	// main game loop
 	update: function(dt)
 	{
-		const child_process = require("child_process");
-		// Sleep for 5 seconds
-		child_process.execSync("sleep 1");
+
 	}
 };

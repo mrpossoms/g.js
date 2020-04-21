@@ -50,6 +50,7 @@ const g = {
 
 			g.web.socket = function() { return g.web._socket; }
             if (!g.web.gfx._initalize()) { return; }
+            g.web.snd._initalize();
 		}
 
  		// custom initialization
@@ -208,6 +209,34 @@ Array.prototype.mat_dims = function()
 	return [ this.length, this[0].length ];
 };
 
+Array.prototype.intersects_sphere = function(origin, radius)
+{
+	const l = origin;
+	const s = this.dot(l);
+	const l_2 = l.dot(l);
+	const r_2 = radius * radius;
+	var t = 0;
+
+	if (s < 0 && l_2 > r_2) { return false; }
+
+	const m_2 = l_2 - s * s;
+
+	if (m_2 > r_2) { return false; }
+
+	const q = Math.sqrt(r_2 - m_2);
+
+	if (r_2 - m_2)
+	{
+		t = s - q;
+	}
+	else
+	{
+		t = s + q;
+	}
+
+	return this.mul(t);
+};
+
 Array.prototype.mat_mul = function(m)
 {
 	var M = this.matrix();
@@ -364,6 +393,10 @@ Array.prototype.as_Float32Array = function() {
 	return new Float32Array(this.flatten());
 };
 
+Array.prototype.as_Int32Array = function(first_argument) {
+	return new Int32Array(this.flatten());
+};
+
 Array.prototype.as_Int16Array = function(first_argument) {
 	return new Int16Array(this.flatten());
 };
@@ -428,7 +461,7 @@ Array.prototype.translate = function(t)
 		[    1,    0,    0,    0    ],
 		[    0,    1,    0,    0    ],
 		[    0,    0,    1,    0    ],
-		[ -t[0], -t[1], -t[2], 1.   ]
+		[  t[0], t[1], t[2],   1.   ]
 	];
 };
 
@@ -490,7 +523,7 @@ Array.prototype.view = function(position, forward, up)
 		[     1,     0,     0,    0 ],
 		[     0,     1,     0,    0 ],
 		[     0,     0,     1,    0 ],
-		[  p[0],  p[1],  p[2],    1 ]
+		[ -p[0], -p[1], -p[2],    1 ]
 	];
 
 	//return ori;
