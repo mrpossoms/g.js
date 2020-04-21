@@ -513,12 +513,8 @@ g.web = {
 						{
 							const set = voxel_data.XYZI[vi];
 							const col = voxel_data.RGBA[set.c];
-							
-							// TODO: parse out voxel markers of interest
 
-							{
-								cells[set.x][set.z][set.y] = set.c;								
-							}
+							cells[set.x][set.z][set.y] = set.c;
 						}
 
 						palette = voxel_data.RGBA;
@@ -594,7 +590,6 @@ g.web = {
 							const cell_left = has_neighbor_w(-1), cell_right = has_neighbor_w(1);
 							const cell_front = has_neighbor_d(1), cell_back = has_neighbor_d(-1);
 							
-							// var corners = new Array(6 * 4 * );
 							const x = wi * s, y = hi * s, z = di * s;
 							if (!cell_bottom) mesh.positions.push(x + 0, y + 0, z + 0, x + s, y + 0, z + 0, x + s, y + 0, z + s, x + 0, y + 0, z + s); // bottom 00-03
 							if (!cell_left)   mesh.positions.push(x + 0, y + 0, z + 0, x + 0, y + s, z + 0, x + 0, y + s, z + s, x + 0, y + 0, z + s); // left   04-07
@@ -603,7 +598,6 @@ g.web = {
 							if (!cell_back)   mesh.positions.push(x + 0, y + 0, z + 0, x + 0, y + s, z + 0, x + s, y + s, z + 0, x + s, y + 0, z + 0); // back   18-22
 							if (!cell_top)    mesh.positions.push(x + 0, y + s, z + 0, x + s, y + s, z + 0, x + s, y + s, z + s, x + 0, y + s, z + s); // top    23-27
 
-							// var texture_coords = [];
 							if (!cell_bottom) mesh.texture_coords.push( 0.00, 1.00,  1/6, 1.00,  1/6, 0.00, 0.00, 0.00 ); // bottom
 							if (!cell_left)   mesh.texture_coords.push(  4/6, 0.00,  4/6, 1.00,  3/6, 1.00,  3/6, 0.00 ); // left
 							if (!cell_front)  mesh.texture_coords.push(  5/6, 0.00,  5/6, 1.00,  4/6, 1.00,  4/6, 0.00 ); // front
@@ -621,10 +615,8 @@ g.web = {
 								if (!cell_right)  mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // right
 								if (!cell_back)   mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // back
 								if (!cell_top)    mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // top
-
 							}
 
-							// var normals = [];
 							if (!cell_bottom) mesh.normals.push( 0,-1, 0, 0,-1, 0, 0,-1, 0, 0,-1, 0 ); // bottom
 							if (!cell_left)   mesh.normals.push(-1, 0, 0,-1, 0, 0,-1, 0, 0,-1, 0, 0 ); // left
 							if (!cell_front)  mesh.normals.push( 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1 ); // front
@@ -632,28 +624,12 @@ g.web = {
 							if (!cell_back)   mesh.normals.push( 0, 0,-1, 0, 0,-1, 0, 0,-1, 0, 0,-1 ); // back
 							if (!cell_top)    mesh.normals.push( 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0 ); // top
 
-							// var indices = [];
 							if (!cell_bottom) { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 							if (!cell_left)   { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
 							if (!cell_front)  { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
 							if (!cell_right)  { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 							if (!cell_back)   { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 							if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
-
-							// for (var pi = 0; pi < corners.length; ++pi)
-							// {
-							// 	var plane = corners[pi];
-							// 	for (var vi = 0; vi < plane.length; ++vi)
-							// 	{
-							// 		plane[vi] = plane[vi].add([wi, hi, di].mul(s));
-							// 	}
-							// }
-
-							// mesh.positions = mesh.positions.concat(corners);
-							// mesh.normals = mesh.normals.concat(normals);
-							// mesh.texture_coords = mesh.texture_coords.concat(texture_coords);
-
-							// mesh.indices = mesh.indices.concat(indices);
 						}
 					}
 
@@ -792,6 +768,7 @@ g.web = {
 		}
 	},
 	assets: {
+		processors: {},
 		load: function(asset_arr, on_finish)
 		{
 			var count = asset_arr.length;
@@ -805,6 +782,10 @@ g.web = {
 					const type_stem = type.split('/')[0];
 					var bytes_to_read = parseInt(res.headers.get('content-length'));
 
+					const fields = path.split('.');
+					const processors = fields.slice(1);
+					const name = fields[0];
+
 					switch (type_stem)
 					{
 						case 'image':
@@ -817,24 +798,21 @@ g.web = {
 							// create webgl texture automatically
 							img.onload = function()
 							{
-								const fields = path.split('.');
-								const name = fields[0];
+
 								const tex_name = name.replace('imgs', 'tex');
 
 								var chain = g.web.gfx.texture.smooth().repeating();
 
-								if (fields.indexOf('pixelated') > 0) { chain = chain.pixelated(); }
-								if (fields.indexOf('smooth') > 0) { chain = chain.smooth(); }
-								if (fields.indexOf('repeating') > 0) { chain = chain.repeating(); }
-								if (fields.indexOf('clamped') > 0) { chain = chain.clamped(); }
+								if (processors.indexOf('pixelated') >= 0) { chain = chain.pixelated(); }
+								if (processors.indexOf('smooth') >= 0) { chain = chain.smooth(); }
+								if (processors.indexOf('repeating') >= 0) { chain = chain.repeating(); }
+								if (processors.indexOf('clamped') >= 0) { chain = chain.clamped(); }
 								g.web.assets[tex_name] = chain.create(img);
 							};
 						} break;
 
 						case 'audio':
 						{
-							const fields = path.split('.');
-							const name = fields[0];
 							const sound_name = name.replace('sounds', 'sound');
 
 							g.web.assets[sound_name] = function (pos)
@@ -871,6 +849,20 @@ g.web = {
 						{
 							g.web.assets[path] = '';
 							return res.json().then(function (json) {
+
+								for (var i = 0; i < processors.length; i++)
+								{
+									const proc_name = processors[i];
+									if (proc_name in g.web.assets.processors)
+									try
+									{
+										json = g.web.assets.processors[proc_name](json);										
+									}
+									catch (error)
+									{
+										console.error('Error: processing "{}" with "{}" failed - {}'.format([path, proc_name, error]));
+									}
+								}
 								g.web.assets[path] = json;
 
 								if (path.indexOf('meshes') > -1)

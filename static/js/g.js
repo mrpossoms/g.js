@@ -145,6 +145,16 @@ Array.prototype.mul = function(v)
 	return w;
 };
 
+Array.prototype.eq = function(v)
+{
+	for (var i = 0; i < this.length; i++)
+	{
+		if (this[i] !== v[i]) { return false; }
+	}
+
+	return true;
+};
+
 Array.prototype.pow = function(ex)
 {
 	var w = new Array(this.length);
@@ -640,6 +650,21 @@ Array.prototype.quat_mul = function(q)
 	    this[3] * q[3] - this[0] * q[0] - this[1] * q[1] - this[2] * q[2],  // 1
 	];
 };
+
+String.prototype.format = function(value_list)
+{
+	const parts = this.split('{}');
+	var out = '';
+	var vi = 0;
+
+	for (var i = 0; i < parts.length; i++)
+	{
+		out += parts[i];
+		if (vi < value_list.length) { out += value_list[vi++]; }
+	}
+
+	return out;
+}
 
 function for_each(obj, cb)
 {
