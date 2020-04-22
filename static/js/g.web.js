@@ -646,6 +646,38 @@ g.web = {
 								if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
 							}
 						}
+					},
+					intersection: function(pos, dir)
+					{
+						var fp = pos.floor()
+						var x = fp[0], y = fp[1], z = fp[2];
+						dir = dir || [0, 0, 0];
+
+						if (x < 0 && x > w) { return false; }
+						if (y < 0 && y > h) { return false; }
+						if (z < 0 && z > d) { return false; }
+
+						if (cells[x][y][z] > 0) { return pos; }
+
+						var itr = dir.len() / s;
+						var dd = dir.mul(1 / itr);
+						for (var i = 0; i < itr; i++)
+						{
+							pos = pos.add(dd);
+							fp = pos.floor();
+							var _x = fp[0], _y = fp[1], _z = fp[2];
+							if (cells[_x][_y][_z] > 0)
+							{
+								return {
+									point: pos,
+									normal: [x - _x, y - _y, z - _z].norm()
+								};
+							}
+
+							x = _x, y = _y, z = _z;
+						}
+
+						return false;
 					}
 				};
 
@@ -804,6 +836,25 @@ g.web = {
 					const processors = fields.slice(1);
 					const name = fields[0];
 
+					function process_asset(asset)
+					{
+						for (var i = 0; i < processors.length; i++)
+						{
+							const proc_name = processors[i];
+							if (proc_name in g.web.assets.processors)
+							try
+							{
+								asset = g.web.assets.processors[proc_name](asset);										
+							}
+							catch (error)
+							{
+								console.error('Error: processing "{}" with "{}" failed - {}'.format([path, proc_name, error]));
+							}
+						}
+
+						return asset;
+					}
+
 					switch (type_stem)
 					{
 						case 'image':
@@ -816,6 +867,7 @@ g.web = {
 							// create webgl texture automatically
 							img.onload = function()
 							{
+								img = process_asset(img);
 
 								const tex_name = name.replace('imgs', 'tex');
 
@@ -841,6 +893,9 @@ g.web = {
 								this.panner = ctx.createPanner();
 								this.gain_node = ctx.createGain();
 								this.gain_node.gain.value = 2;
+
+								if (processors.indexOf('looping') >= 0) { this.audio.loop = true; }
+
 								this.track.connect(this.gain_node).connect(this.panner).connect(ctx.destination);
 								this.panner.setPosition(pos[0], pos[1], pos[2]);
 								this.speed = function(speed)
@@ -868,20 +923,7 @@ g.web = {
 							g.web.assets[path] = '';
 							return res.json().then(function (json) {
 
-								for (var i = 0; i < processors.length; i++)
-								{
-									const proc_name = processors[i];
-									if (proc_name in g.web.assets.processors)
-									try
-									{
-										json = g.web.assets.processors[proc_name](json);										
-									}
-									catch (error)
-									{
-										console.error('Error: processing "{}" with "{}" failed - {}'.format([path, proc_name, error]));
-									}
-								}
-								g.web.assets[path] = json;
+								g.web.assets[path] = process_asset(json);
 
 								if (path.indexOf('meshes') > -1)
 								{
