@@ -126,6 +126,15 @@ Array.prototype.floor = function()
 	return r;
 };
 
+Array.prototype.ceil = function()
+{
+	var r = new Array(this.length);
+
+	for (var i = this.length; i--;) r[i] = Math.ceil(this[i]);
+
+	return r;
+};
+
 Array.prototype.mul = function(v)
 {
 	var w = new Array(this.length);

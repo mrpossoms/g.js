@@ -649,7 +649,7 @@ g.web = {
 					},
 					intersection: function(pos, dir)
 					{
-						var fp = pos.floor()
+						var fp = pos.floor(), cp = pos.ceil();
 						var x = fp[0], y = fp[1], z = fp[2];
 						dir = dir || [0, 0, 0];
 
@@ -657,7 +657,10 @@ g.web = {
 						if (y < 0 && y > h) { return false; }
 						if (z < 0 && z > d) { return false; }
 
-						if (cells[x][y][z] > 0) { return pos; }
+						if (cells[x][y][z] > 0) return {
+							point: pos,
+							normal: fp.sub(cp).norm()
+						}
 
 						var itr = dir.len() / s;
 						var dd = dir.mul(1 / itr);
