@@ -543,7 +543,6 @@ g.web = {
 
 				var voxel = {
 					mesh: null,
-					gl_mesh: null,
 					width: w,
 					height: h,
 					depth: d,
@@ -647,14 +646,18 @@ g.web = {
 								if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
 							}
 						}
-
-						this.gl_mesh = g.web.gfx.mesh.create(mesh);
 					}
 				};
 
 				voxel.generate();
+				var gl_mesh = g.web.gfx.mesh.create(voxel.mesh);
 
-				return voxel;
+				for (var key in voxel)
+				{
+					gl_mesh[key] = voxel[key];
+				}
+
+				return gl_mesh;
 			}
 		},
 		sprite: {
