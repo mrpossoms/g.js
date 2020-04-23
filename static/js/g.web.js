@@ -30,6 +30,7 @@ g.web = {
 				gl.enable(gl.DEPTH_TEST);           // Enable depth testing
 				gl.getExtension('OES_element_index_uint');
 				gl.enable(gl.BLEND);
+				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 				window.gl = gl;
@@ -37,6 +38,16 @@ g.web = {
 				if (document.body.onresize) { document.body.onresize(); }
 
 				return true;
+			}
+		},
+		helpers: {
+			pixel_to_canonical: function(pixel_coord) {
+				const tr = [].translate([
+					(2 * pixel_coord[0] / g.web.gfx.width()) - 1,
+					-(2 * pixel_coord[1] / g.web.gfx.height()) + 1,
+					1,
+				]);//.mul(-1);
+				return tr;
 			}
 		},
 		camera: function() {
@@ -218,6 +229,9 @@ g.web = {
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
 				};
 
+				tex.width = img.width;
+				tex.height = img.height;
+
 				return tex;
 			}
 		},
@@ -325,6 +339,22 @@ g.web = {
 							{
 								return this.set_uniform('u_proj').mat4(camera.projection())
 										   .set_uniform('u_view').mat4(camera.view());
+							},
+							with_aspect_correct_2d: function(tex, transform)
+							{
+								transform = transform || [].I(4);
+								const scale = [].mat_scale([
+									2 * tex.width / g.web.gfx.width(),
+									2 * tex.height / g.web.gfx.height(),
+									1
+								]);
+
+								transform = scale.mat_mul(transform);
+
+								return this.set_uniform('u_texture').texture(tex)
+								           .set_uniform('u_proj').mat4([].I(4))
+								           .set_uniform('u_view').mat4([].I(4))
+								           .set_uniform('u_model').mat4(transform)
 							},
 							set_uniform: function(uni_name)
 							{

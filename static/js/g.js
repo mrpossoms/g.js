@@ -81,11 +81,12 @@ const g = {
 	},
 };
 
-Array.prototype.all_within_sphere(sphere, position_key, item_cb)
+Array.prototype.within_sphere = function(sphere, position_key, item_cb)
 {
 	if (typeof(position_key) == 'string')
 	{
-		position_key = function(item) { return item[position_key]; }
+		const key_str = position_key;
+		position_key = function(item) { return item[key_str]; }
 	}
 
 	for (var i = 0; i < this.length; ++i)
@@ -496,6 +497,16 @@ Array.prototype.cross = function(v)
 		this[0] * v[1] - this[1] * v[0]
 	];
 }
+
+Array.prototype.mat_scale = function(s)
+{
+	return [
+		[    s[0], 0,    0,    0    ],
+		[    0,    s[1], 0,    0    ],
+		[    0,    0,    s[2], 0    ],
+		[    0,    0,    0,    1.   ]
+	];
+};
 
 Array.prototype.translate = function(t)
 {
