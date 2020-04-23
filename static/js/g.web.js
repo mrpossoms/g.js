@@ -28,6 +28,8 @@ g.web = {
 				gl.clearDepth(1.0);                 // Clear everything
 				gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
 				gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+				gl.getExtension('OES_element_index_uint');
+				gl.enable(gl.BLEND);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 				window.gl = gl;

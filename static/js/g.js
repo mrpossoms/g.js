@@ -81,6 +81,20 @@ const g = {
 	},
 };
 
+Array.prototype.all_within_sphere(sphere, position_key, item_cb)
+{
+	if (typeof(position_key) == 'string')
+	{
+		position_key = function(item) { return item[position_key]; }
+	}
+
+	for (var i = 0; i < this.length; ++i)
+	{
+		const pos = position_key(this[i]);
+		if (pos.sub(sphere).len() <= sphere[3]) { return item_cb(i); }
+	}
+}
+
 Array.prototype.is_matrix = function()
 {
 	return this[0].constructor === Array;
