@@ -52,14 +52,10 @@ setInterval(function() {
 	}
 }, dt * 1000);
 
-/*
-app.get('/', function(res, req)
-{
-	res.sendFile('static/index.html');
-});
-*/
+
+const PORT = process.env.PORT || 3001;
 
 // express setup
 app.use(express.static(path.join(__dirname, 'static')));
 //app.use(express.static('static'));
-http.listen(3001, function() { console.log('Running!'); });
+http.listen(PORT, function() { console.log('Listening at: ' + PORT); });

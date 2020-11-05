@@ -16,7 +16,7 @@ g.web = {
 					return false;
 				}
 
-				const gl = _canvas.getContext('webgl');
+				const gl = _canvas.getContext('webgl2');
 
 				if (gl == null)
 				{
@@ -55,9 +55,9 @@ g.web = {
 			this._view = [].I(4);
 			this._proj = [].I(4);
 			this._pos = [0,0,0];
-			this._forward = [0,0,1];
+			this._forward = [0,0,-1];
 			this._up = [0,1,0];
-			this._left = [1,0,0];
+			this._left = [-1,0,0];
 			this.is_listener = true;
 
 			this.look_at = function(position, subject, up)
@@ -68,7 +68,7 @@ g.web = {
 					this._forward = subject.sub(position).norm();
 					this._up = up.norm();
 					this._view = [].view(this._pos, this._forward, this._up);
-					this._left = this._q.quat_rotate_vector([1, 0, 0]);
+					this._left = this._q.quat_rotate_vector([-1, 0, 0]);
 				}
 
 				return this._view;
@@ -82,7 +82,7 @@ g.web = {
 					this._forward = forward.norm();
 					this._up = up.norm();
 					this._view = [].view(this._pos, this._forward, this._up);
-					this._left = this._q.quat_rotate_vector([1, 0, 0]);
+					this._left = this._q.quat_rotate_vector([-1, 0, 0]);
 
 					if (this.is_listener && g.web._audio_ctx) { g.web.snd.listener.from_camera(this); }
 				}
@@ -95,8 +95,8 @@ g.web = {
 				if (q) { this._q = q; }
 
 				this._up = this._q.quat_rotate_vector([0, 1, 0]);
-				this._forward = this._q.quat_rotate_vector([0, 0, 1]);
-				this._left = this._q.quat_rotate_vector([1, 0, 0]);
+				this._forward = this._q.quat_rotate_vector([0, 0, -1]);
+				this._left = this._q.quat_rotate_vector([-1, 0, 0]);
 
 				return this._q;
 			};
@@ -114,8 +114,8 @@ g.web = {
 				this._q = this._q.quat_mul(dq);
 
 				this._up = this._q.quat_rotate_vector([0, 1, 0]);
-				this._forward = this._q.quat_rotate_vector([0, 0, 1]);
-				this._left = this._q.quat_rotate_vector([1, 0, 0]);
+				this._forward = this._q.quat_rotate_vector([0, 0, -1]);
+				this._left = this._q.quat_rotate_vector([-1, 0, 0]);
 
 				this.view(this._pos, this._forward, this._up);
 			};
@@ -188,20 +188,9 @@ g.web = {
 			return g.web._canvas.width / g.web._canvas.height;
 		},
 		texture: {
-			_filtering: null,
-			_wraping: null,
-
-			repeating: function() { this._wraping = gl.REPEAT; return this; },
-			clamped: function() { this._wraping = gl.CLAMP_TO_EDGE; return this; },
-			pixelated: function() { this._filtering = gl.NEAREST; return this; },
-			smooth: function() { this._filtering = gl.LINEAR; return this; },
-
 			create: function(img)
 			{
 				const tex = gl.createTexture();
-				const filter = g.web.gfx.texture._filtering || gl.LINEAR;
-				var wrap = g.web.gfx.texture._wraping || gl.REPEAT;
-				
 				function is_power_of_2(n) { return (n != 0) && ((n & (n - 1))) == 0; }
 
 				if (!is_power_of_2(img.width) || !is_power_of_2(img.height)) { wrap = gl.CLAMP_TO_EDGE; }
@@ -213,24 +202,69 @@ g.web = {
 						gl.TEXTURE_2D,
 						0,
 						gl.RGBA,
+						img.width,
+						img.height,
+						0,
 						gl.RGBA,
 						gl.UNSIGNED_BYTE,
-						img
+						img instanceof HTMLImageElement ? img : null
 					);
-
-					if (wrap == null)
-					{ console.error('Texture wrap not specified. Please call repeating() or clamped()'); }
-					if (filter == null)
-					{ console.error('Texture filter not specified. Please call pixelated() or smooth()'); }
-
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
 				};
 
 				tex.width = img.width;
 				tex.height = img.height;
+
+				tex.pixelated = function() {
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+					return tex;
+				};
+
+				tex.smooth = function() {
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+					return tex;	
+				};
+
+				tex.clamped = function() {
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+					return tex;	
+				};
+
+				tex.repeating = function() {
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+					return tex;	
+				};
+
+				tex.render_target = function() {
+					const fbo = gl.createFramebuffer();
+					gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+					// attach the color texture created above
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+					// create and attach the render buffer for depth
+					const rbo = gl.createRenderbuffer();
+					gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+					gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, img.width, img.height);
+					gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rbo);
+
+					tex.bind_as_target = ()=> {
+						gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+					};
+
+					tex.unbind_as_target = ()=> {
+						gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+					};
+
+					tex.fbo = fbo;
+
+					return tex;
+				};
 
 				return tex;
 			}
@@ -529,6 +563,16 @@ g.web = {
 				var palette = null;
 				var locations = [];
 
+				// grab the palette if it exists
+				if (voxel_data.palette)
+				{
+					palette = new Array(voxel_data.palette.length / 4);
+					for (var pi = 0; pi < voxel_data.palette.length; pi += 4)
+					{
+						palette[pi >> 2] = [voxel_data.palette[pi + 0] / 255, voxel_data.palette[pi + 1] / 255, voxel_data.palette[pi + 2] / 255];//, palette[pi].a / 255];
+					}
+				}
+
 				// convert to uniform data storage
 				if (voxel_data.SIZE)
 				{
@@ -551,18 +595,23 @@ g.web = {
 						cells[set.x][set.z][set.y] = set.c;
 					}
 
-					palette = voxel_data.RGBA;
-					for (var pi = palette.length; pi--;)
+					if (typeof(voxel_data.RGBA[0]) == 'object')
 					{
-						if (!palette[pi]) { continue; }
-						palette[pi] = [palette[pi].r / 255, palette[pi].g / 255, palette[pi].b / 255];//, palette[pi].a / 255];
+						palette = voxel_data.RGBA;
+						for (var pi = palette.length; pi--;)
+						{
+							if (!palette[pi]) { continue; }
+							palette[pi] = [palette[pi].r / 255, palette[pi].g / 255, palette[pi].b / 255];//, palette[pi].a / 255];
+						}						
 					}
+
 
 					voxel_data = {
 						width: voxel_data.SIZE.x,
 						height: voxel_data.SIZE.z,
 						depth: voxel_data.SIZE.y,
 						scale: voxel_data.scale,
+						palette: palette,
 						cells: cells
 					};
 				}
@@ -572,6 +621,7 @@ g.web = {
 				const d = voxel_data.depth;
 				const s = voxel_data.scale || 1;
 				var cells = voxel_data.cells;
+				var center_of_mass = voxel_data.center_of_mass;
 
 				var voxel = {
 					mesh: null,
@@ -589,7 +639,8 @@ g.web = {
 							normals: [],
 							colors: [],
 							texture_coords: [],
-							indices: []
+							indices: [],
+							center_of_mass: [0, 0, 0],
 						};
 						var mesh = this.mesh;
 
@@ -604,6 +655,7 @@ g.web = {
 							indices [ 0, 3, 2, 0, 2, 1 ]
 						*/
 						var ii = 0;
+						var cell_count = 0;
 						for (var wi = 0; wi < w; ++wi)
 						for (var hi = 0; hi < h; ++hi)
 						for (var di = 0; di < d; ++di)
@@ -676,7 +728,19 @@ g.web = {
 								if (!cell_right)  { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 								if (!cell_back)   { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 								if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
+							
+								mesh.center_of_mass = mesh.center_of_mass.add([x, y, z]);
+								cell_count++;
 							}
+						}
+
+						mesh.center_of_mass = mesh.center_of_mass.mul(1 / cell_count);
+
+						for (var pi = 0; pi < mesh.positions.length; pi += 3)
+						{
+							mesh.positions[pi + 0] = mesh.positions[pi + 0] - mesh.center_of_mass[0];
+							mesh.positions[pi + 1] = mesh.positions[pi + 1] - mesh.center_of_mass[1];
+							mesh.positions[pi + 2] = mesh.positions[pi + 2] - mesh.center_of_mass[2];
 						}
 					},
 					intersection: function(pos, dir)
@@ -906,13 +970,13 @@ g.web = {
 
 								const tex_name = name.replace('imgs', 'tex');
 
-								var chain = g.web.gfx.texture.smooth().repeating();
+								var tex = g.web.gfx.texture.create(img).smooth().repeating();
 
 								if (processors.indexOf('pixelated') >= 0) { chain = chain.pixelated(); }
 								if (processors.indexOf('smooth') >= 0) { chain = chain.smooth(); }
 								if (processors.indexOf('repeating') >= 0) { chain = chain.repeating(); }
 								if (processors.indexOf('clamped') >= 0) { chain = chain.clamped(); }
-								g.web.assets[tex_name] = chain.create(img);
+								g.web.assets[tex_name] = tex;
 							};
 						} break;
 

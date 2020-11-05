@@ -41,9 +41,9 @@ g.initialize(function ()
 
         // g.web.assets['mesh/plane'] = g.web.gfx.mesh.create(g.web.assets["meshes/plane.json"]);
         g.web.assets['mesh/cube'] = g.web.gfx.mesh.create(g.web.assets['meshes/exported-cube.json']);
-        g.web.assets['tex/stars'] = g.web.gfx.texture.repeating()
-                                                     .pixelated()
-                                                     .create(g.web.assets["imgs/stars.jpg"])
+        g.web.assets['tex/stars'] = g.web.gfx.texture.create(g.web.assets["imgs/stars.jpg"])
+                                                     .repeating()
+                                                     .pixelated();
         g.is_running = true;
     });
 
