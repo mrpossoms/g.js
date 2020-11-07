@@ -11,12 +11,12 @@ function on_load()
 
 
 var cam = new g.web.gfx.camera();
-var plane_pos = [ 0, 0, 0 ];
-var plane_q = [0, 0, 0, 1];
+cam.position([0, 0, 0]);
+cam.orientation([0, 0, 0, 1]);
 
-cam.view([0, 0, 0], [0, 0, 0], [0, 1, 0]);
-cam.position = [0, 0, -2];
-cam.q = [0, 0, 0, 1];
+var shadow_map = null;
+var light = new g.web.gfx.camera();
+light.view([20, 20, 20], [0, -1, 0], [0, 0, 1]);
 
 g.web.canvas(document.getElementsByTagName('canvas')[0]);
 
@@ -30,6 +30,7 @@ g.initialize(function ()
     'shaders/basic_colored.vert',
     'shaders/basic_colored.frag',
     'imgs/stars.jpg',
+    'imgs/test.png',
     'voxels/squid.json',
     'meshes/plane.json',
     'meshes/exported-cube.json'
@@ -52,8 +53,15 @@ g.initialize(function ()
         g.web.assets['tex/stars'] = g.web.gfx.texture.create(g.web.assets["imgs/stars.jpg"])
                                                      .repeating()
                                                      .pixelated();
+
+        g.web.assets['tex/test'] = g.web.gfx.texture.create(g.web.assets["imgs/test.png"])
+                                                     .repeating()
+                                                     .pixelated();
         g.is_running = true;
     });
+
+    shadow_map = g.web.gfx.texture.create({width: 512, height: 512}).render_target();
+    light.orthographic();
 
 	return true;
 });
@@ -61,9 +69,7 @@ g.initialize(function ()
 
 g.web.pointer.on_move(function (event)
 {
-    cam.q = cam.q.quat_mul([].quat_rotation([0, 1, 0], -event.movementX / 100));
-    cam.q = cam.q.quat_mul([].quat_rotation([1, 0, 0], -event.movementY / 100));
-    // console.log([event.movementX, event.movementY]);s
+    cam.tilt(event.movementY / 100, event.movementX / 100);
 });
 
 
@@ -75,46 +81,80 @@ g.web.on_message(function (msg)
 
 g.update(function (dt)
 {
-    const forward = cam.q.quat_rotate_vector([0, 0, -1]);
-    const up = cam.q.quat_rotate_vector([0, 1, 0]);
-    const right = forward.cross(up);
+    const forward = cam.forward();
+    const up = cam.up();
+    const left = cam.left();
 
-	if (g.web.key.is_pressed('w')) { cam.position = cam.position.add(forward.mul(-dt)); }
-    if (g.web.key.is_pressed('s')) { cam.position = cam.position.add(forward.mul(dt)); }
-    if (g.web.key.is_pressed('a')) { cam.position = cam.position.add(right.mul(dt)); }
-    if (g.web.key.is_pressed('d')) { cam.position = cam.position.add(right.mul(-dt)); }
+	if (g.web.key.is_pressed('w')) { cam.position(cam.position().add(forward.mul(-dt))); }
+    if (g.web.key.is_pressed('s')) { cam.position(cam.position().add(forward.mul(dt))); }
+    if (g.web.key.is_pressed('a')) { cam.position(cam.position().add(left.mul(dt))); }
+    if (g.web.key.is_pressed('d')) { cam.position(cam.position().add(left.mul(-dt))); }
+    if (g.web.key.is_pressed(' ')) { cam.position(cam.position().add(up.mul(dt))); }
+    if (g.web.key.is_pressed('shift')) { cam.position(cam.position().add(up.mul(-dt))); }
 
-    plane_pos = [ Math.cos(t), Math.sin(t), 0 ].mul(0);
-    cam._view = [].view(cam.position.sub(forward), forward, up);
-    // cam.view(cam.position, ([0, 0, 1]), ([0, 1, 0]));
+    if (g.web.key.is_pressed('q')) { cam.tilt(0, 0, dt); }
+    if (g.web.key.is_pressed('e')) { cam.tilt(0, 0, -dt); }
 });
 
 var t = 0;
+
+const draw_scene = (camera) => {
+
+    g.web.assets['voxel/squid'].using_shader('basic_colored')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        //.with_attribute({name:'a_normal', buffer: 'normals', components: 3})
+        .with_attribute({name:'a_color', buffer: 'colors', components: 3})
+        .with_camera(camera)
+        .set_uniform('u_model').mat4([].I(4))
+        .draw_tris();
+
+    g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+        .with_camera(camera)
+        .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
+        .set_uniform('u_model').mat4([].mat_scale([100, 100, 100]))
+        .draw_tris();
+
+    g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+        .with_camera(camera)
+        .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
+        .set_uniform('u_model').mat4([].translate([0, 10, 0]))
+        .draw_tris();
+
+    g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+        .with_camera(camera)
+        .set_uniform('u_texture').texture(g.web.assets['tex/test'])
+        .set_uniform('u_model').mat4([].translate([0, 0, 10]))
+        .draw_tris();
+
+    g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+        .with_camera(camera)
+        .set_uniform('u_texture').texture(shadow_map)//g.web.assets['tex/test'])
+        .set_uniform('u_model').mat4([].translate([10, 0, 0]))
+        .draw_tris();
+};
 
 g.web.draw(function (dt)
 {
     t += dt;
     if (g.is_running == false) { return; }
 
-    gl.clearColor(0.5, 0.5, 1, 1);
+
+    light.position([Math.cos(t) * 10, -30, 0]);
+    shadow_map.bind_as_target();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    draw_scene(light.perspective());
+    shadow_map.unbind_as_target();
 
-    const mesh = g.web.assets['voxel/squid'];
-
-    // cam.perspective();
-    cam.orthographic();
-
-    plane_q = plane_q.quat_mul([].quat_rotation([0, 0, 1], dt));
-
-    // cam._view = cam.q.quat_to_matrix();
-
-    mesh.using_shader('basic_colored')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        //.with_attribute({name:'a_normal', buffer: 'normals', components: 3})
-        .with_attribute({name:'a_color', buffer: 'colors', components: 3})
-        .with_camera(cam)
-        .set_uniform('u_model').mat4([].I(4))
-        .draw_tris();
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    draw_scene(cam.perspective());
 });
 
 g.start();

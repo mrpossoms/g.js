@@ -107,8 +107,8 @@ g.web = {
 				d_pitch = d_pitch || 0;
 				d_roll = d_roll || 0;
 
-				const dqx = [].quat_rotation([1, 0, 0], d_pitch);
-				const dqy = [].quat_rotation([0, 1, 0], d_yaw);
+				const dqx = [].quat_rotation([1, 0, 0], d_yaw);
+				const dqy = [].quat_rotation([0, 1, 0], d_pitch);
 				const dqz = [].quat_rotation([0, 0, 1], d_roll);
 				const dq = dqx.quat_mul(dqy).quat_mul(dqz);
 				this._q = this._q.quat_mul(dq);
@@ -183,10 +183,7 @@ g.web = {
 		},
 		width: function() { return g.web._canvas.width; },
 		height: function() { return g.web._canvas.height; },
-		aspect: function()
-		{
-			return g.web._canvas.width / g.web._canvas.height;
-		},
+		aspect: function() { return g.web._canvas.width / g.web._canvas.height; },
 		texture: {
 			create: function(img)
 			{
@@ -223,19 +220,19 @@ g.web = {
 				tex.smooth = function() {
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-					return tex;	
+					return tex;
 				};
 
 				tex.clamped = function() {
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-					return tex;	
+					return tex;
 				};
 
 				tex.repeating = function() {
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-					return tex;	
+					return tex;
 				};
 
 				tex.render_target = function() {
@@ -254,10 +251,13 @@ g.web = {
 					gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rbo);
 
 					tex.bind_as_target = ()=> {
+						gl.viewport(0, 0, tex.width, tex.height);
 						gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 					};
 
 					tex.unbind_as_target = ()=> {
+						gl.generateMipmap(gl.TEXTURE_2D);
+						gl.viewport(0, 0, g.web.gfx.width(), g.web.gfx.height());
 						gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 					};
 
@@ -596,7 +596,7 @@ g.web = {
 						if ((voxel_data.SIZE.z - 1) - set.z == 40) {
 							console.log('oosp');
 						}
-						cells[set.x][(voxel_data.SIZE.z - 1) - set.z][set.y] = set.c;
+						cells[set.x][set.z][set.y] = set.c;
 					}
 
 					if (typeof(voxel_data.RGBA[0]) == 'object')
@@ -606,7 +606,7 @@ g.web = {
 						{
 							if (!palette[pi]) { continue; }
 							palette[pi] = [palette[pi].r / 255, palette[pi].g / 255, palette[pi].b / 255];//, palette[pi].a / 255];
-						}						
+						}
 					}
 
 
@@ -691,7 +691,7 @@ g.web = {
 								const cell_top = has_neighbor_h(1), cell_bottom = has_neighbor_h(-1);
 								const cell_left = has_neighbor_w(-1), cell_right = has_neighbor_w(1);
 								const cell_front = has_neighbor_d(1), cell_back = has_neighbor_d(-1);
-								
+
 								const x = wi * s, y = hi * s, z = di * s;
 								if (!cell_bottom) mesh.positions.push(x + 0, y + 0, z + 0, x + s, y + 0, z + 0, x + s, y + 0, z + s, x + 0, y + 0, z + s); // bottom 00-03
 								if (!cell_left)   mesh.positions.push(x + 0, y + 0, z + 0, x + 0, y + s, z + 0, x + 0, y + s, z + s, x + 0, y + 0, z + s); // left   04-07
@@ -732,7 +732,7 @@ g.web = {
 								if (!cell_right)  { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 								if (!cell_back)   { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 								if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
-							
+
 								mesh.center_of_mass = mesh.center_of_mass.add([x, y, z]);
 								cell_count++;
 							}
@@ -947,7 +947,7 @@ g.web = {
 							if (proc_name in g.web.assets.processors)
 							try
 							{
-								asset = g.web.assets.processors[proc_name](asset);										
+								asset = g.web.assets.processors[proc_name](asset);
 							}
 							catch (error)
 							{
@@ -1041,7 +1041,7 @@ g.web = {
 								else if (path.indexOf('animations') > -1)
 								{
 									const animation_name = path.replace('animations', 'animation').replace('.json', '');
-									g.web.assets[animation_name] = g.web.gfx.sprite.create(g.web.assets[path]);	
+									g.web.assets[animation_name] = g.web.gfx.sprite.create(g.web.assets[path]);
 								}
 
 								console.log('Finished OK: ' + path);
