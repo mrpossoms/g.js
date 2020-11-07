@@ -27,7 +27,10 @@ g.initialize(function ()
     const asset_list = [
     'shaders/basic_textured.vert',
     'shaders/basic_textured.frag',
+    'shaders/basic_colored.vert',
+    'shaders/basic_colored.frag',
     'imgs/stars.jpg',
+    'voxels/squid.json',
     'meshes/plane.json',
     'meshes/exported-cube.json'
     ];
@@ -37,6 +40,11 @@ g.initialize(function ()
         g.web.gfx.shader.create('basic_textured',
             g.web.assets['shaders/basic_textured.vert'],
             g.web.assets['shaders/basic_textured.frag']
+        );
+
+        g.web.gfx.shader.create('basic_colored',
+            g.web.assets['shaders/basic_colored.vert'],
+            g.web.assets['shaders/basic_colored.frag']
         );
 
         // g.web.assets['mesh/plane'] = g.web.gfx.mesh.create(g.web.assets["meshes/plane.json"]);
@@ -88,9 +96,10 @@ g.web.draw(function (dt)
     t += dt;
     if (g.is_running == false) { return; }
 
+    gl.clearColor(0.5, 0.5, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const mesh = g.web.assets['mesh/cube'];
+    const mesh = g.web.assets['voxel/squid'];
 
     // cam.perspective();
     cam.orthographic();
@@ -99,13 +108,12 @@ g.web.draw(function (dt)
 
     // cam._view = cam.q.quat_to_matrix();
 
-    mesh.using_shader('basic_textured')
+    mesh.using_shader('basic_colored')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+        //.with_attribute({name:'a_normal', buffer: 'normals', components: 3})
+        .with_attribute({name:'a_color', buffer: 'colors', components: 3})
         .with_camera(cam)
         .set_uniform('u_model').mat4([].I(4))
-        // .set_uniform('u_model').mat4(cam.q.quat_to_matrix())
-        .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
         .draw_tris();
 });
 

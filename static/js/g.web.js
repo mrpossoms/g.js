@@ -592,7 +592,11 @@ g.web = {
 						const set = voxel_data.XYZI[vi];
 						const col = voxel_data.RGBA[set.c];
 
-						cells[set.x][set.z][set.y] = set.c;
+						console.log((voxel_data.SIZE.z - 1) - set.z);
+						if ((voxel_data.SIZE.z - 1) - set.z == 40) {
+							console.log('oosp');
+						}
+						cells[set.x][(voxel_data.SIZE.z - 1) - set.z][set.y] = set.c;
 					}
 
 					if (typeof(voxel_data.RGBA[0]) == 'object')
