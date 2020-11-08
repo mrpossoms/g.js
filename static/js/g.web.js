@@ -262,6 +262,7 @@ g.web = {
 					};
 
 					tex.fbo = fbo;
+					tex.rbo = rbo;
 
 					return tex;
 				};

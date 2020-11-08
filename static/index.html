@@ -106,6 +106,7 @@ const draw_scene = (camera) => {
         .with_attribute({name:'a_color', buffer: 'colors', components: 3})
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
+        .set_uniform('u_shadow_map').texture(shadow_map)
         .draw_tris();
 
     g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
