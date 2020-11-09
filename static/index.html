@@ -149,6 +149,9 @@ const draw_scene = (camera) => {
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
         .set_uniform('u_shadow_map').texture(shadow_map)
+        .set_uniform('u_light_view').mat4(light.view())
+        .set_uniform('u_light_proj').mat4(light.projection())
+        .set_uniform('u_light_world_pos').vec3([Math.cos(t) * 10, -30, 0])
         .draw_tris();
 
     g.web.assets['mesh/exported-cube'].using_shader('basic_textured')

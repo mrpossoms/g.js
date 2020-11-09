@@ -407,7 +407,7 @@ g.web = {
 									},
 									vec3: function(v)
 									{
-										gl.uniform3fv(loc, v.as_Float32Array(), 1);
+										gl.uniform3fv(loc, v.as_Float32Array());
 										return shader_ref;
 									},
 									vec4: function(v)
