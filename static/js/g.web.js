@@ -286,24 +286,24 @@ g.web = {
 
 				fbo.color = function(tex)
 				{
-					fbo.has_color = true;
+					fbo.color_attachment = tex;
 					gl.bindTexture(gl.TEXTURE_2D, tex);
-					// attach the color texture created above
-					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
 					return fbo;
 				}
 
 				fbo.depth = function(tex)
 				{
-					fbo.has_depth = true;
+					fbo.depth_attachment = tex;
 					gl.bindTexture(gl.TEXTURE_2D, tex);
-					// attach the color texture created above
-					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, tex, 0);
 					return fbo;
+				}
+
+				fbo.shadow_map = function()
+				{
+					var depth_tex = g.web.gfx.texture.create(img).depth().clamped().smooth();
+					return fbo.depth(depth_tex);
 				}
 
 				fbo.bind_as_target = ()=> {
@@ -312,9 +312,9 @@ g.web = {
 				};
 
 				fbo.unbind_as_target = ()=> {
-					if (fbo.has_color)
+					if (fbo.color_attachment)
 					{
-						//gl.generateMipmap(gl.TEXTURE_2D);
+						gl.generateMipmap(gl.TEXTURE_2D);
 					}
 
 					gl.viewport(0, 0, g.web.gfx.width(), g.web.gfx.height());
