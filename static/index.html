@@ -14,9 +14,10 @@ var cam = new g.web.gfx.camera();
 cam.position([0, 0, 0]);
 cam.orientation([0, 0, 0, 1]);
 
+var depth_attachment = null;
 var shadow_map = null;
 var light = new g.web.gfx.camera();
-light.view([20, 20, 20], [0, -1, 0], [0, 0, 1]);
+light.view([20, 20, 20], [0, 1, 0], [0, 0, 1]);
 
 g.web.canvas(document.getElementsByTagName('canvas')[0]);
 
@@ -58,16 +59,22 @@ g.initialize(function ()
         // g.web.assets['mesh/plane'] = g.web.gfx.mesh.create(g.web.assets["meshes/plane.json"]);
         g.web.assets['mesh/cube'] = g.web.gfx.mesh.create(g.web.assets['meshes/exported-cube.json']);
         g.web.assets['tex/stars'] = g.web.gfx.texture.create(g.web.assets["imgs/stars.jpg"])
+                                                     .color()
                                                      .repeating()
                                                      .pixelated();
 
         g.web.assets['tex/test'] = g.web.gfx.texture.create(g.web.assets["imgs/test.png"])
+                                                     .color()
                                                      .repeating()
                                                      .pixelated();
+
+        depth_attachment = g.web.gfx.texture.create({width: 512, height: 512}).depth().clamped().smooth();
+        color_attachment = g.web.gfx.texture.create({width: 512, height: 512}).color().clamped().smooth();
+        shadow_map = g.web.gfx.render_target.create({width: 512, height: 512}).depth(depth_attachment).color(color_attachment);
+
         g.is_running = true;
     });
 
-    shadow_map = g.web.gfx.texture.create({width: 512, height: 512}).render_target();
     light.orthographic();
 
 	return true;
@@ -148,10 +155,10 @@ const draw_scene = (camera) => {
         .with_attribute({name:'a_color', buffer: 'colors', components: 3})
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
-        .set_uniform('u_shadow_map').texture(shadow_map)
+        .set_uniform('u_shadow_map').texture(depth_attachment)
         .set_uniform('u_light_view').mat4(light.view())
         .set_uniform('u_light_proj').mat4(light.projection())
-        .set_uniform('u_light_world_pos').vec3([Math.cos(t) * 10, -30, 0])
+        .set_uniform('u_light_world_pos').vec3([Math.cos(t * 1) * 1, 0 * Math.cos(t) + 2.5, Math.sin(t * 1) * 1])
         .draw_tris();
 
     g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
@@ -182,7 +189,7 @@ const draw_scene = (camera) => {
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
         .with_camera(camera)
-        .set_uniform('u_texture').texture(shadow_map)//g.web.assets['tex/test'])
+        .set_uniform('u_texture').texture(depth_attachment)//g.web.assets['tex/test'])
         .set_uniform('u_model').mat4([].translate([10, 0, 0]))
         .draw_tris();
 };
@@ -193,7 +200,7 @@ g.web.draw(function (dt)
     if (g.is_running == false) { return; }
 
 
-    light.position([Math.cos(t) * 10, -30, 0]);
+    light.position([Math.cos(t * 1) * 1, 0 * Math.cos(t) + 2.5, Math.sin(t * 1) * 1]);
     shadow_map.bind_as_target();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     draw_scene_shadow(light.perspective());

@@ -16,7 +16,16 @@ g.web = {
 					return false;
 				}
 
-				const gl = _canvas.getContext('webgl2');
+				const gl = _canvas.getContext('webgl');
+				const depth_ext = gl.getExtension('WEBGL_depth_texture');
+				if (!depth_ext) {
+					return alert('need WEBGL_depth_texture');
+				}
+
+				// const float_ext = gl.getExtension('WEBGL_texture_float');
+				// if (!float_ext) {
+				// 	return alert('need WEBGL_texture_float');
+				// }
 
 				if (gl == null)
 				{
@@ -188,28 +197,58 @@ g.web = {
 			create: function(img)
 			{
 				const tex = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, tex);
+
 				function is_power_of_2(n) { return (n != 0) && ((n & (n - 1))) == 0; }
-
-				if (!is_power_of_2(img.width) || !is_power_of_2(img.height)) { wrap = gl.CLAMP_TO_EDGE; }
-
-				// img.onload = function()
-				{
-					gl.bindTexture(gl.TEXTURE_2D, tex);
-					gl.texImage2D(
-						gl.TEXTURE_2D,
-						0,
-						gl.RGBA,
-						img.width,
-						img.height,
-						0,
-						gl.RGBA,
-						gl.UNSIGNED_BYTE,
-						img instanceof HTMLImageElement ? img : null
-					);
-				};
 
 				tex.width = img.width;
 				tex.height = img.height;
+
+				tex.depth = function() {
+					gl.texImage2D(
+						gl.TEXTURE_2D,
+						0,
+						gl.DEPTH_COMPONENT,
+						img.width,
+						img.height,
+						0,
+						gl.DEPTH_COMPONENT,
+						gl.UNSIGNED_INT,
+						null
+					);
+
+					return tex;
+				};
+
+				tex.color = function() {
+					if (img instanceof HTMLImageElement)
+					{
+						gl.texImage2D(
+							gl.TEXTURE_2D,
+							0,
+							gl.RGBA,
+							gl.RGBA,
+							gl.UNSIGNED_BYTE,
+							img
+						);
+					}
+					else
+					{
+						gl.texImage2D(
+							gl.TEXTURE_2D,
+							0,
+							gl.RGBA,
+							img.width,
+							img.height,
+							0,
+							gl.RGBA,
+							gl.UNSIGNED_BYTE,
+							null
+						);
+					}
+
+					return tex;
+				};
 
 				tex.pixelated = function() {
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -235,39 +274,54 @@ g.web = {
 					return tex;
 				};
 
-				tex.render_target = function() {
-					const fbo = gl.createFramebuffer();
-					gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-
-					// attach the color texture created above
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-
-					// create and attach the render buffer for depth
-					const rbo = gl.createRenderbuffer();
-					gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
-					gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, img.width, img.height);
-					gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rbo);
-
-					tex.bind_as_target = ()=> {
-						gl.viewport(0, 0, tex.width, tex.height);
-						gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-					};
-
-					tex.unbind_as_target = ()=> {
-						gl.generateMipmap(gl.TEXTURE_2D);
-						gl.viewport(0, 0, g.web.gfx.width(), g.web.gfx.height());
-						gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-					};
-
-					tex.fbo = fbo;
-					tex.rbo = rbo;
-
-					return tex;
-				};
+				if (!is_power_of_2(tex.width)) { return tex.clamped(); }
 
 				return tex;
+			}
+		},
+		render_target: {
+			create: function(img) {
+				const fbo = gl.createFramebuffer();
+				gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+				fbo.color = function(tex)
+				{
+					fbo.has_color = true;
+					gl.bindTexture(gl.TEXTURE_2D, tex);
+					// attach the color texture created above
+					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+					return fbo;
+				}
+
+				fbo.depth = function(tex)
+				{
+					fbo.has_depth = true;
+					gl.bindTexture(gl.TEXTURE_2D, tex);
+					// attach the color texture created above
+					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, tex, 0);
+					return fbo;
+				}
+
+				fbo.bind_as_target = ()=> {
+					gl.viewport(0, 0, img.width, img.height);
+					gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+				};
+
+				fbo.unbind_as_target = ()=> {
+					if (fbo.has_color)
+					{
+						//gl.generateMipmap(gl.TEXTURE_2D);
+					}
+
+					gl.viewport(0, 0, g.web.gfx.width(), g.web.gfx.height());
+					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+				};
+
+				return fbo;
 			}
 		},
 		shader: {
@@ -975,7 +1029,7 @@ g.web = {
 
 								const tex_name = name.replace('imgs', 'tex');
 
-								var tex = g.web.gfx.texture.create(img).smooth().repeating();
+								var tex = g.web.gfx.texture.create(img).color().smooth().repeating();
 
 								if (processors.indexOf('pixelated') >= 0) { chain = chain.pixelated(); }
 								if (processors.indexOf('smooth') >= 0) { chain = chain.smooth(); }
