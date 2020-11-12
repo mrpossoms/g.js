@@ -10,7 +10,8 @@ uniform highp mat4 u_light_view;
 uniform highp mat4 u_light_proj;
 
 varying lowp vec3 v_color;
-varying highp vec4 v_proj_pos;
+varying lowp vec3 v_normal;
+varying highp vec4 v_light_proj_pos;
 
 void main (void)
 {
@@ -18,7 +19,8 @@ void main (void)
 	gl_Position = u_proj * u_view * v_world_pos;
 
 	v_color = a_color;
-	v_proj_pos = u_light_proj * u_light_view * v_world_pos;
-	v_proj_pos /= v_proj_pos.w;
-	v_proj_pos = (v_proj_pos + 1.0) / 2.0;
+    v_normal = normalize(mat3(u_light_view) * a_normal);
+	v_light_proj_pos = u_light_proj * u_light_view * v_world_pos;
+	v_light_proj_pos /= v_light_proj_pos.w;
+	v_light_proj_pos = (v_light_proj_pos + 1.0) / 2.0;
 }

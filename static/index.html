@@ -33,7 +33,7 @@ g.initialize(function ()
     'shaders/depth_only.frag',
     'imgs/stars.jpg',
     'imgs/test.png',
-    'voxels/squid.json',
+    'voxels/temple.json',
     'meshes/plane.json',
     'meshes/exported-cube.json'
     ];
@@ -55,8 +55,8 @@ g.initialize(function ()
             g.web.assets['shaders/depth_only.frag']
         );
 
-        shadow_map = g.web.gfx.render_target.create({width: 512, height: 512}).shadow_map();
-        
+        shadow_map = g.web.gfx.render_target.create({width: 2048, height: 2048}).shadow_map();
+
         g.is_running = true;
     });
 
@@ -100,43 +100,19 @@ var t = 0;
 
 const draw_scene_shadow = (camera) => {
 
-    g.web.assets['voxel/squid'].using_shader('depth_only')
+    g.web.assets['voxel/temple'].using_shader('depth_only')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
-        .draw_tris();
-
-    g.web.assets['mesh/exported-cube'].using_shader('depth_only')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_camera(camera)
-        .set_uniform('u_model').mat4([].mat_scale([100, 100, 100]))
-        .draw_tris();
-
-    g.web.assets['mesh/exported-cube'].using_shader('depth_only')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_camera(camera)
-        .set_uniform('u_model').mat4([].translate([0, 10, 0]))
-        .draw_tris();
-
-    g.web.assets['mesh/exported-cube'].using_shader('depth_only')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_camera(camera)
-        .set_uniform('u_model').mat4([].translate([0, 0, 10]))
-        .draw_tris();
-
-    g.web.assets['mesh/exported-cube'].using_shader('depth_only')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_camera(camera)
-        .set_uniform('u_model').mat4([].translate([10, 0, 0]))
         .draw_tris();
 };
 
 
 const draw_scene = (camera, shader) => {
 
-    g.web.assets['voxel/squid'].using_shader('basic_colored')
+    g.web.assets['voxel/temple'].using_shader('basic_colored')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        //.with_attribute({name:'a_normal', buffer: 'normals', components: 3})
+        .with_attribute({name:'a_normal', buffer: 'normals', components: 3})
         .with_attribute({name:'a_color', buffer: 'colors', components: 3})
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
@@ -149,32 +125,8 @@ const draw_scene = (camera, shader) => {
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
         .with_camera(camera)
-        .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
-        .set_uniform('u_model').mat4([].mat_scale([100, 100, 100]))
-        .draw_tris();
-
-    g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
-        .with_camera(camera)
-        .set_uniform('u_texture').texture(g.web.assets['tex/stars'])
-        .set_uniform('u_model').mat4([].translate([0, 10, 0]))
-        .draw_tris();
-
-    g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
-        .with_camera(camera)
-        .set_uniform('u_texture').texture(g.web.assets['tex/test'])
-        .set_uniform('u_model').mat4([].translate([0, 0, 10]))
-        .draw_tris();
-
-    g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
-        .with_camera(camera)
         .set_uniform('u_texture').texture(shadow_map.depth_attachment)
-        .set_uniform('u_model').mat4([].translate([10, 0, 0]))
+        .set_uniform('u_model').mat4([].translate([0, -10, 0]))
         .draw_tris();
 };
 
@@ -184,14 +136,15 @@ g.web.draw(function (dt)
     if (g.is_running == false) { return; }
 
 
-    light.position([Math.cos(0.1 * t * 1) * 1, 0 * Math.cos(t) + 2.5, Math.sin(0.1 * t * 1) * 1]);
+    light.look_at([10, Math.sin(t * 0.1) * 52, Math.cos(t * 0.1) * 52], [0, 0, 0], [0, 1, 0]);
     shadow_map.bind_as_target();
     gl.clear(gl.DEPTH_BUFFER_BIT);
-    draw_scene_shadow(light.perspective());
+    draw_scene_shadow(light.perspective(Math.PI / 4));
     shadow_map.unbind_as_target();
 
+    gl.clearColor(135/255, 206/255, 235/255, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    draw_scene(cam.perspective());
+    draw_scene(cam.perspective(Math.PI / 2));
 });
 
 g.start();

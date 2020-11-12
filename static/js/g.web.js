@@ -22,10 +22,15 @@ g.web = {
 					return alert('need WEBGL_depth_texture');
 				}
 
-				// const float_ext = gl.getExtension('WEBGL_texture_float');
-				// if (!float_ext) {
-				// 	return alert('need WEBGL_texture_float');
-				// }
+				const float_ext = gl.getExtension('OES_texture_float');
+				if (!float_ext) {
+					return alert('need WEBGL_texture_float');
+				}
+
+				if (!gl.getExtension('OES_texture_float_linear'))
+				{
+					return alert('need OES_texture_float_linear');
+				}
 
 				if (gl == null)
 				{
@@ -39,6 +44,8 @@ g.web = {
 				gl.enable(gl.DEPTH_TEST);           // Enable depth testing
 				gl.getExtension('OES_element_index_uint');
 				gl.enable(gl.BLEND);
+				gl.enable(gl.CULL_FACE);
+				gl.cullFace(gl.FRONT);
 				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -74,7 +81,7 @@ g.web = {
 				if (position && subject && up)
 				{
 					this._pos = position;
-					this._forward = subject.sub(position).norm();
+					this._forward = position.sub(subject).norm();
 					this._up = up.norm();
 					this._view = [].view(this._pos, this._forward, this._up);
 					this._left = this._q.quat_rotate_vector([-1, 0, 0]);
@@ -90,8 +97,10 @@ g.web = {
 					this._pos = position;
 					this._forward = forward.norm();
 					this._up = up.norm();
+					this._left = this._up.cross(this._forward);
+					this._up = this._forward.cross(this._left);
 					this._view = [].view(this._pos, this._forward, this._up);
-					this._left = this._q.quat_rotate_vector([-1, 0, 0]);
+					// this._left = this._q.quat_rotate_vector([-1, 0, 0]);
 
 					if (this.is_listener && g.web._audio_ctx) { g.web.snd.listener.from_camera(this); }
 				}
@@ -213,7 +222,7 @@ g.web = {
 						img.height,
 						0,
 						gl.DEPTH_COMPONENT,
-						gl.UNSIGNED_INT,
+						gl.UNSIGNED_SHORT,
 						null
 					);
 
@@ -647,7 +656,6 @@ g.web = {
 						const set = voxel_data.XYZI[vi];
 						const col = voxel_data.RGBA[set.c];
 
-						console.log((voxel_data.SIZE.z - 1) - set.z);
 						if ((voxel_data.SIZE.z - 1) - set.z == 40) {
 							console.log('oosp');
 						}
