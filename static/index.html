@@ -10,12 +10,12 @@ function on_load()
 {
 
 
-var cam = new g.web.gfx.camera();
+var cam = g.web.gfx.camera.create();
 cam.position([0, 0, -3]);
 cam.orientation([0, 0, 0, 1]);
 
 var shadow_map = null;
-var light = new g.web.gfx.camera();
+var light = g.web.gfx.camera.create();
 light.view([20, 20, 20], [0, 1, 0], [0, 0, 1]);
 
 g.web.canvas(document.getElementsByTagName('canvas')[0]);

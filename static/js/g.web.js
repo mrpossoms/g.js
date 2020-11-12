@@ -66,138 +66,135 @@ g.web = {
 				return tr;
 			}
 		},
-		camera: function() {
-			this._q = [0,0,0,1];
-			this._view = [].I(4);
-			this._proj = [].I(4);
-			this._pos = [0,0,0];
-			this._forward = [0,0,-1];
-			this._up = [0,1,0];
-			this._left = [-1,0,0];
-			this.is_listener = true;
-
-			this.look_at = function(position, subject, up)
+		camera: {
+			create: function()
 			{
-				if (position && subject && up)
-				{
-					this._pos = position;
-					this._forward = position.sub(subject).norm();
-					this._up = up.norm();
-					this._view = [].view(this._pos, this._forward, this._up);
-					this._left = this._q.quat_rotate_vector([-1, 0, 0]);
-				}
+				var _q = [0,0,0,1];
+				var _view = [].I(4);
+				var _proj = [].I(4);
+				var _pos = [0,0,0];
+				var _forward = [0,0,-1];
+				var _up = [0,1,0];
+				var _left = [-1,0,0];
+				var is_listener = true;
 
-				return this._view;
-			};
+				var cam = {
+					look_at: function(position, subject, up)
+					{
+						if (position && subject && up)
+						{
+							_pos = position;
+							_forward = position.sub(subject).norm();
+							_up = up.norm();
+							_view = [].view(_pos, _forward, _up);
+							_left = _q.quat_rotate_vector([-1, 0, 0]);
+						}
 
-			this.view = function(position, forward, up)
-			{
-				if (position && forward && up)
-				{
-					this._pos = position;
-					this._forward = forward.norm();
-					this._up = up.norm();
-					this._left = this._up.cross(this._forward);
-					this._up = this._forward.cross(this._left);
-					this._view = [].view(this._pos, this._forward, this._up);
-					// this._left = this._q.quat_rotate_vector([-1, 0, 0]);
+						return _view;
+					},
+					orientation: function(q)
+					{
+						if (q) { _q = q; }
 
-					if (this.is_listener && g.web._audio_ctx) { g.web.snd.listener.from_camera(this); }
-				}
+						_up = _q.quat_rotate_vector([0, 1, 0]);
+						_forward = _q.quat_rotate_vector([0, 0, -1]);
+						_left = _q.quat_rotate_vector([-1, 0, 0]);
 
-				return this._view;
-			};
+						return _q;
+					},
+					tilt: function(d_yaw, d_pitch, d_roll)
+					{
+						d_yaw = d_yaw || 0;
+						d_pitch = d_pitch || 0;
+						d_roll = d_roll || 0;
 
-			this.orientation = function(q)
-			{
-				if (q) { this._q = q; }
+						const dqx = [].quat_rotation([1, 0, 0], d_yaw);
+						const dqy = [].quat_rotation([0, 1, 0], d_pitch);
+						const dqz = [].quat_rotation([0, 0, 1], d_roll);
+						const dq = dqx.quat_mul(dqy).quat_mul(dqz);
+						_q = _q.quat_mul(dq);
 
-				this._up = this._q.quat_rotate_vector([0, 1, 0]);
-				this._forward = this._q.quat_rotate_vector([0, 0, -1]);
-				this._left = this._q.quat_rotate_vector([-1, 0, 0]);
+						_up = _q.quat_rotate_vector([0, 1, 0]);
+						_forward = _q.quat_rotate_vector([0, 0, -1]);
+						_left = _q.quat_rotate_vector([-1, 0, 0]);
 
-				return this._q;
-			};
+						this.view(_pos, _forward, _up);
+					},
+					position: function(p)
+					{
+						if (p)
+						{
+							_pos = p;
+							this.view(_pos, _forward, _up);
+						}
 
-			this.tilt = function(d_yaw, d_pitch, d_roll)
-			{
-				d_yaw = d_yaw || 0;
-				d_pitch = d_pitch || 0;
-				d_roll = d_roll || 0;
+						return _pos;
+					},
+					up: function(u)
+					{
+						if (u)
+						{
+							_up = u;
+							this.view(_pos, _forward, _up);
+						}
 
-				const dqx = [].quat_rotation([1, 0, 0], d_yaw);
-				const dqy = [].quat_rotation([0, 1, 0], d_pitch);
-				const dqz = [].quat_rotation([0, 0, 1], d_roll);
-				const dq = dqx.quat_mul(dqy).quat_mul(dqz);
-				this._q = this._q.quat_mul(dq);
+						return _up;
+					},
+					left: function()
+					{
+						return _left;
+					},
+					forward: function(f)
+					{
+						if (f)
+						{
+							_forward = f;
+							this.view(_pos, _forward, _up);
+						}
 
-				this._up = this._q.quat_rotate_vector([0, 1, 0]);
-				this._forward = this._q.quat_rotate_vector([0, 0, -1]);
-				this._left = this._q.quat_rotate_vector([-1, 0, 0]);
+						return _forward;
+					},
+					projection: function() { return _proj; },
+					perspective: function(fov, near, far)
+					{
+						fov = fov || Math.PI / 2;
+						near = near || 0.1;
+						far = far || 500;
 
-				this.view(this._pos, this._forward, this._up);
-			};
+						_proj = [].perspective(fov, g.web.gfx.aspect(), near, far);
 
-			this.position = function(p)
-			{
-				if (p)
-				{
-					this._pos = p;
-					this.view(this._pos, this._forward, this._up);
-				}
+						return this;
+					},
+					orthographic: function(near, far)
+					{
+						const a = g.web.gfx.aspect();
+						near = near || 0.1;
+						far = far || 100;
+						_proj = [].orthographic(-a, a, -1, 1, near, far);
 
-				return this._pos;
-			};
+						return this;
+					}
+				};
 
-			this.up = function(u)
-			{
-				if (u)
-				{
-					this._up = u;
-					this.view(this._pos, this._forward, this._up);
-				}
+				cam.view = (position, forward, up) => {
+					if (position && forward && up)
+					{
+						_pos = position;
+						_forward = forward.norm();
+						_up = up.norm();
+						_left = _up.cross(_forward);
+						_up = _forward.cross(_left);
+						_view = [].view(_pos, _forward, _up);
+						// _left = _q.quat_rotate_vector([-1, 0, 0]);
 
-				return this._up;
-			};
+						if (is_listener && g.web._audio_ctx) { g.web.snd.listener.from_camera(cam); }
+					}
 
-			this.left = function()
-			{
-				return this._left;
-			};
+					return _view;
+				};
 
-			this.forward = function(f)
-			{
-				if (f)
-				{
-					this._forward = f;
-					this.view(this._pos, this._forward, this._up);
-				}
-
-				return this._forward;
-			};
-
-			this.projection = function() { return this._proj; }
-
-			this.perspective = function(fov, near, far)
-			{
-				fov = fov || Math.PI / 2;
-				near = near || 0.1;
-				far = far || 500;
-
-				this._proj = [].perspective(fov, g.web.gfx.aspect(), near, far);
-
-				return this;
-			};
-
-			this.orthographic = function(near, far)
-			{
-				const a = g.web.gfx.aspect();
-				near = near || 0.1;
-				far = far || 100;
-				this._proj = [].orthographic(-a, a, -1, 1, near, far);
-
-				return this;
-			};
+				return cam;
+			}
 		},
 		width: function() { return g.web._canvas.width; },
 		height: function() { return g.web._canvas.height; },
