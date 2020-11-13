@@ -10,13 +10,16 @@ function on_load()
 {
 
 
-var cam = g.web.gfx.camera.create();
+var cam = g.web.gfx.camera.fps((new_pos, new_vel) => {
+    const vox = g.web.assets['voxel/temple'];
+    return vox.intersection(new_pos.add(vox.mesh.center_of_mass), new_vel);
+});
+
 cam.position([0, 0, -3]);
-cam.orientation([0, 0, 0, 1]);
+cam.forces.push([0, -1, 0]);
 
 var shadow_map = null;
 var light = g.web.gfx.camera.create();
-light.view([20, 20, 20], [0, 1, 0], [0, 0, 1]);
 
 g.web.canvas(document.getElementsByTagName('canvas')[0]);
 
@@ -84,12 +87,12 @@ g.update(function (dt)
     const up = cam.up();
     const left = cam.left();
 
-	if (g.web.key.is_pressed('w')) { cam.position(cam.position().add(forward.mul(-dt))); }
-    if (g.web.key.is_pressed('s')) { cam.position(cam.position().add(forward.mul(dt))); }
-    if (g.web.key.is_pressed('a')) { cam.position(cam.position().add(left.mul(dt))); }
-    if (g.web.key.is_pressed('d')) { cam.position(cam.position().add(left.mul(-dt))); }
-    if (g.web.key.is_pressed(' ')) { cam.position(cam.position().add(up.mul(dt))); }
-    if (g.web.key.is_pressed('shift')) { cam.position(cam.position().add(up.mul(-dt))); }
+    cam.update(dt);
+
+	if (g.web.key.is_pressed('w')) { cam.walk.forward(dt); }
+    if (g.web.key.is_pressed('s')) { cam.walk.backward(dt); }
+    if (g.web.key.is_pressed('a')) { cam.walk.left(dt); }
+    if (g.web.key.is_pressed('d')) { cam.walk.right(dt); }
 
     if (g.web.key.is_pressed('q')) { cam.tilt(0, 0, dt); }
     if (g.web.key.is_pressed('e')) { cam.tilt(0, 0, -dt); }
@@ -120,6 +123,12 @@ const draw_scene = (camera, shader) => {
         .set_uniform('u_light_view').mat4(light.view())
         .set_uniform('u_light_proj').mat4(light.projection())
         .draw_tris();
+
+    g.web.assets['voxel/temple'].using_shader('depth_only')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_camera(camera)
+        .set_uniform('u_model').mat4([].I(4))
+        .draw_lines();
 
     g.web.assets['mesh/exported-cube'].using_shader('basic_textured')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})

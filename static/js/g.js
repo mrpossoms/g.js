@@ -64,7 +64,7 @@ const g = {
 		var update = function() {
 			var dt = step_timer.tick();
 
-			if (g.is_running)
+			if (g.is_running && dt < 0.5)
 			{
 				g._update(dt);
 
@@ -98,7 +98,7 @@ Array.prototype.within_sphere = function(sphere, position_key, item_cb)
 
 Array.prototype.is_matrix = function()
 {
-	return this[0].constructor === Array;
+	return this[0] && this[0].constructor === Array;
 }
 
 Array.prototype.new_matrix = function(rows, cols)
@@ -146,6 +146,15 @@ Array.prototype.ceil = function()
 	var r = new Array(this.length);
 
 	for (var i = this.length; i--;) r[i] = Math.ceil(this[i]);
+
+	return r;
+};
+
+Array.prototype.abs = function()
+{
+	var r = new Array(this.length);
+
+	for (var i = this.length; i--;) r[i] = Math.abs(this[i]);
 
 	return r;
 };

@@ -194,6 +194,110 @@ g.web = {
 				};
 
 				return cam;
+			},
+			fps: function(collides, on_collision)
+			{
+				var cam = g.web.gfx.camera.create();
+
+				cam.mass = 1.0;
+				cam.force = 1.0;
+				cam.friction = 1.0;
+				cam.forces = [];
+				cam.max_pitch = Math.PI / 4;
+				cam.min_pitch = -Math.PI / 4;
+
+				var pitch = 0;
+				var yaw = 0;
+				var velocity = [0, 0, 0];
+
+				cam.walk = {
+					forward: (dt)=> {
+						var accel = cam.forward().mul(-dt * cam.force / cam.mass);
+						velocity = velocity.add(accel);
+					},
+					backward: (dt)=> {
+						var accel = cam.forward().mul(dt * cam.force / cam.mass);
+						velocity = velocity.add(accel);
+					},
+					left: (dt)=> {
+						var accel = cam.left().mul(dt * cam.force / cam.mass);
+						velocity = velocity.add(accel);
+					},
+					right: (dt)=> {
+						var accel = cam.left().mul(-dt * cam.force / cam.mass);
+						velocity = velocity.add(accel);
+					}
+				};
+
+				cam.tilt = (d_pitch, d_yaw) => {
+					const new_pitch = pitch + d_pitch;
+					
+					if (new_pitch > cam.min_pitch && new_pitch < cam.max_pitch)
+					{
+						pitch = new_pitch;
+					}
+
+					yaw += d_yaw;
+
+					// d_yaw = d_yaw || 0;
+					// d_pitch = d_pitch || 0;
+					// d_roll = d_roll || 0;
+
+					// const dqx = [].quat_rotation([1, 0, 0], d_yaw);
+					// const dqy = [].quat_rotation([0, 1, 0], d_pitch);
+					// const dqz = [].quat_rotation([0, 0, 1], d_roll);
+					// const dq = dqx.quat_mul(dqy).quat_mul(dqz);
+					// _q = _q.quat_mul(dq);
+
+					// _up = _q.quat_rotate_vector([0, 1, 0]);
+					// _forward = _q.quat_rotate_vector([0, 0, -1]);
+					// _left = _q.quat_rotate_vector([-1, 0, 0]);
+
+					// this.view(_pos, _forward, _up);
+				};
+
+				cam.update = (dt)=> {
+					var net_force = [0, 0, 0];
+
+					for (var i = 0; i < cam.forces.length; i++)
+					{
+						net_force = net_force.add(cam.forces[i]);
+					}
+
+					const net_accel = net_force.mul(dt / cam.mass);
+					const new_vel = velocity.add(net_accel);
+					const new_pos = cam.position().add(new_vel.mul(dt));
+
+					const collision = collides(new_pos, new_vel.mul(dt));
+					if (collision)
+					{
+						if (on_collision) { on_collision(cam, collision); }
+						else
+						{
+							// velocity = [ 0, 0, 0 ];
+							velocity = velocity.sub(velocity.mul(collision.normal.abs()));
+							cam.position(cam.position().add(velocity.mul(dt)));
+						}
+					}
+					else
+					{
+						cam.position(new_pos);
+						velocity = new_vel;
+					}
+				
+					const qx = [].quat_rotation([1, 0, 0], pitch);
+					const qy = [].quat_rotation([0, 1, 0], yaw);
+					const q = qy.quat_mul(qx)
+
+					cam.up(q.quat_rotate_vector([0, 1, 0]));
+					cam.forward(q.quat_rotate_vector([0, 0, -1]));
+					// cam._left = cam._q.quat_rotate_vector([-1, 0, 0]));
+
+					cam.view(cam.position(), cam.forward(), cam.up());
+
+				};
+
+				return cam;
 			}
 		},
 		width: function() { return g.web._canvas.width; },
@@ -813,9 +917,9 @@ g.web = {
 						var x = fp[0], y = fp[1], z = fp[2];
 						dir = dir || [0, 0, 0];
 
-						if (x < 0 && x > w) { return false; }
-						if (y < 0 && y > h) { return false; }
-						if (z < 0 && z > d) { return false; }
+						if (x < 0 || x >= w) { return false; }
+						if (y < 0 || y >= h) { return false; }
+						if (z < 0 || z >= d) { return false; }
 
 						if (cells[x][y][z] > 0) return {
 							point: pos,
@@ -829,6 +933,11 @@ g.web = {
 							pos = pos.add(dd);
 							fp = pos.floor();
 							var _x = fp[0], _y = fp[1], _z = fp[2];
+
+							if (_x < 0 || _x >= w) { return false; }
+							if (_y < 0 || _y >= h) { return false; }
+							if (_z < 0 || _z >= d) { return false; }
+
 							if (cells[_x][_y][_z] > 0)
 							{
 								return {
