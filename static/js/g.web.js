@@ -22,16 +22,6 @@ g.web = {
 					return alert('need WEBGL_depth_texture');
 				}
 
-				const float_ext = gl.getExtension('OES_texture_float');
-				if (!float_ext) {
-					return alert('need WEBGL_texture_float');
-				}
-
-				if (!gl.getExtension('OES_texture_float_linear'))
-				{
-					return alert('need OES_texture_float_linear');
-				}
-
 				if (gl == null)
 				{
 					alert('Unable to initialize WebGL. Your browser or machine may not support it.');
@@ -195,7 +185,7 @@ g.web = {
 
 				return cam;
 			},
-			fps: function(collides, on_collision)
+			fps: function(opts)
 			{
 				var cam = g.web.gfx.camera.create();
 
@@ -209,24 +199,54 @@ g.web = {
 				var pitch = 0;
 				var yaw = 0;
 				var velocity = [0, 0, 0];
+				var last_collisions = [];
+				var coll_dirs = [];
+
+				if (opts && opts.collision_rep)
+				{
+
+				}
+				else
+				{
+					for (var x = -1; x <= 1; x++)
+					for (var y = -1; y <= 0; y++)
+					for (var z = -1; z <= 1; z++)
+					{
+						var x_s = 0.0125;
+						var z_s = 0.0125;
+
+						if (y == -1) { x_s = z_s = 0; }
+
+						coll_dirs.push([x * x_s, y, z * z_s]);
+					}
+				}
 
 				cam.walk = {
 					forward: (dt)=> {
+						if (cam.is_airborn()) { dt *= 0.5; }
 						var accel = cam.forward().mul(-dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					backward: (dt)=> {
+						if (cam.is_airborn()) { dt *= 0.5; }
 						var accel = cam.forward().mul(dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					left: (dt)=> {
+						if (cam.is_airborn()) { dt *= 0.5; }
 						var accel = cam.left().mul(dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					right: (dt)=> {
+						if (cam.is_airborn()) { dt *= 0.5; }
 						var accel = cam.left().mul(-dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					}
+				};
+
+				cam.velocity = (vel) => {
+					if (vel) { velocity = vel; }
+					else { return velocity; }
 				};
 
 				cam.tilt = (d_pitch, d_yaw) => {
@@ -238,23 +258,11 @@ g.web = {
 					}
 
 					yaw += d_yaw;
-
-					// d_yaw = d_yaw || 0;
-					// d_pitch = d_pitch || 0;
-					// d_roll = d_roll || 0;
-
-					// const dqx = [].quat_rotation([1, 0, 0], d_yaw);
-					// const dqy = [].quat_rotation([0, 1, 0], d_pitch);
-					// const dqz = [].quat_rotation([0, 0, 1], d_roll);
-					// const dq = dqx.quat_mul(dqy).quat_mul(dqz);
-					// _q = _q.quat_mul(dq);
-
-					// _up = _q.quat_rotate_vector([0, 1, 0]);
-					// _forward = _q.quat_rotate_vector([0, 0, -1]);
-					// _left = _q.quat_rotate_vector([-1, 0, 0]);
-
-					// this.view(_pos, _forward, _up);
 				};
+
+				cam.last_collisions = () => { return last_collisions; }
+
+				cam.is_airborn = () => { return last_collisions.length <= 0; }
 
 				cam.update = (dt)=> {
 					var net_force = [0, 0, 0];
@@ -265,26 +273,36 @@ g.web = {
 					}
 
 					const net_accel = net_force.mul(dt / cam.mass);
-					const new_vel = velocity.add(net_accel);
+					var new_vel = velocity.add(net_accel);
 					const new_pos = cam.position().add(new_vel.mul(dt));
 
-					const collision = collides(new_pos, new_vel.mul(dt));
-					if (collision)
+					last_collisions = [];
+
+					if (opts && opts.collides)
+					for (var i = coll_dirs.length; i--;)
 					{
-						if (on_collision) { on_collision(cam, collision); }
-						else
+						const collision = opts.collides(new_pos, coll_dirs[i]);
+						if (collision)
 						{
-							// velocity = [ 0, 0, 0 ];
-							velocity = velocity.sub(velocity.mul(collision.normal.abs()));
-							cam.position(cam.position().add(velocity.mul(dt)));
+							last_collisions.push(collision);
+
+							if (opts.on_collision) { opts.on_collision(cam, collision); }
+							else
+							{
+								const cancled = new_vel.mul(collision.normal.abs());
+								new_vel = new_vel.sub(cancled);
+							}
 						}
 					}
-					else
+
+					if (last_collisions.length > 0)
 					{
-						cam.position(new_pos);
-						velocity = new_vel;
+						new_vel = new_vel.add(new_vel.mul(-cam.friction * dt));
 					}
-				
+
+					velocity = new_vel;
+					cam.position(cam.position().add(velocity.mul(dt)));
+					
 					const qx = [].quat_rotation([1, 0, 0], pitch);
 					const qy = [].quat_rotation([0, 1, 0], yaw);
 					const q = qy.quat_mul(qx)

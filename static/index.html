@@ -10,13 +10,19 @@ function on_load()
 {
 
 
-var cam = g.web.gfx.camera.fps((new_pos, new_vel) => {
+const cam_colision_check = (new_pos, new_vel) => {
     const vox = g.web.assets['voxel/temple'];
     return vox.intersection(new_pos.add(vox.mesh.center_of_mass), new_vel);
+}
+
+var cam = g.web.gfx.camera.fps({
+    collides: cam_colision_check
 });
 
 cam.position([0, 0, -3]);
-cam.forces.push([0, -1, 0]);
+cam.forces.push([0, -9, 0]);
+cam.force = 20;
+cam.friction = 5;
 
 var shadow_map = null;
 var light = g.web.gfx.camera.create();
@@ -93,9 +99,10 @@ g.update(function (dt)
     if (g.web.key.is_pressed('s')) { cam.walk.backward(dt); }
     if (g.web.key.is_pressed('a')) { cam.walk.left(dt); }
     if (g.web.key.is_pressed('d')) { cam.walk.right(dt); }
-
-    if (g.web.key.is_pressed('q')) { cam.tilt(0, 0, dt); }
-    if (g.web.key.is_pressed('e')) { cam.tilt(0, 0, -dt); }
+    if (g.web.key.is_pressed(' ') && !cam.is_airborn())
+    {
+        cam.velocity(cam.velocity().add([0, 6, 0]));
+    }
 });
 
 var t = 0;
