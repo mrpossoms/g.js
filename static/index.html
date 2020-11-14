@@ -80,6 +80,10 @@ g.web.pointer.on_move(function (event)
     cam.tilt(event.movementY / 100, event.movementX / 100);
 });
 
+g.web.pointer.on_press((event) => {
+    g.web._canvas.requestPointerLock();
+});
+
 
 g.web.on_message(function (msg)
 {

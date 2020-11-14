@@ -200,6 +200,7 @@ g.web = {
 				var yaw = 0;
 				var velocity = [0, 0, 0];
 				var last_collisions = [];
+				var coll_offsets = [];
 				var coll_dirs = [];
 
 				if (opts && opts.collision_rep)
@@ -208,17 +209,19 @@ g.web = {
 				}
 				else
 				{
-					for (var x = -1; x <= 1; x++)
-					for (var y = -1; y <= 0; y++)
-					for (var z = -1; z <= 1; z++)
+					for (var x = -2; x <= 2; x++)
+					for (var y = -2; y <= 2; y++)
+					for (var z = -2; z <= 2; z++)
 					{
-						var x_s = 0.0125;
-						var z_s = 0.0125;
+						// var x_s = 0.0125;
+						// var z_s = 0.0125;
+						// if (y == -1) { x_s = z_s = 0; }
+						// coll_offsets.push([x * x_s, y, z * z_s]);
 
-						if (y == -1) { x_s = z_s = 0; }
-
-						coll_dirs.push([x * x_s, y, z * z_s]);
+						coll_dirs.push([x, y, z].norm());
 					}
+
+					// coll_dirs = [[0, -1, 0]];
 				}
 
 				cam.walk = {
@@ -281,7 +284,7 @@ g.web = {
 					if (opts && opts.collides)
 					for (var i = coll_dirs.length; i--;)
 					{
-						const collision = opts.collides(new_pos, coll_dirs[i]);
+						const collision = opts.collides(new_pos, coll_dirs[i].mul(dt));
 						if (collision)
 						{
 							last_collisions.push(collision);
@@ -291,6 +294,10 @@ g.web = {
 							{
 								const cancled = new_vel.mul(collision.normal.abs());
 								new_vel = new_vel.sub(cancled);
+								// const n = collision.normal;
+								// const l = new_vel.mul(-1);
+								// var vel = (n.mul(2 * n.dot(l)).sub(l));
+								// new_vel = vel.sub(vel.mul(0.5));
 							}
 						}
 					}
