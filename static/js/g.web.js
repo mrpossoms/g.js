@@ -209,19 +209,33 @@ g.web = {
 				}
 				else
 				{
-					for (var x = -2; x <= 2; x++)
-					for (var y = -2; y <= 2; y++)
-					for (var z = -2; z <= 2; z++)
-					{
-						// var x_s = 0.0125;
-						// var z_s = 0.0125;
-						// if (y == -1) { x_s = z_s = 0; }
-						// coll_offsets.push([x * x_s, y, z * z_s]);
+					const r = 1;
+					// for (var x = -r; x <= r; x++)
+					// for (var y = 0; y <= 0; y++)
+					// for (var z = -r; z <= r; z++)
+					// {
+					// 	if (x == 0 && z == 0) { continue; }
+					// 	// var x_s = 0.0125;
+					// 	// var z_s = 0.0125;
+					// 	// if (y == -1) { x_s = z_s = 0; }
+					// 	coll_offsets.push([0, -0.5, 0]);
+					// 	coll_dirs.push([x, y, z].norm().mul(0.5));
+					// }
 
-						coll_dirs.push([x, y, z].norm());
-					}
+					coll_offsets.push([0, -0.5, 0]);
+					coll_dirs.push([-1, 0, 0].norm().mul(0.5));
 
-					// coll_dirs = [[0, -1, 0]];
+					coll_offsets.push([0, -0.5, 0]);
+					coll_dirs.push([1, 0, 0].norm().mul(0.5));
+
+					coll_offsets.push([0, -0.5, 0]);
+					coll_dirs.push([0, 0, 1].norm().mul(0.5));
+
+					coll_offsets.push([0, -0.5, 0]);
+					coll_dirs.push([0, 0, -1].norm().mul(0.5));
+
+					coll_offsets.push([0, 0, 0]);
+					coll_dirs.push([0, -1, 0]);
 				}
 
 				cam.walk = {
@@ -284,9 +298,15 @@ g.web = {
 					if (opts && opts.collides)
 					for (var i = coll_dirs.length; i--;)
 					{
-						const collision = opts.collides(new_pos, coll_dirs[i].mul(dt));
+						const collision = opts.collides(
+							coll_offsets[i].add(new_pos),
+							coll_dirs[i].mul(dt)
+						);
+
 						if (collision)
 						{
+							if (collision.normal.dot(new_vel) - 0.001 >= 0) { continue; }
+
 							last_collisions.push(collision);
 
 							if (opts.on_collision) { opts.on_collision(cam, collision); }
@@ -297,7 +317,7 @@ g.web = {
 								// const n = collision.normal;
 								// const l = new_vel.mul(-1);
 								// var vel = (n.mul(2 * n.dot(l)).sub(l));
-								// new_vel = vel.sub(vel.mul(0.5));
+								// new_vel = vel.sub(vel.mul(1.1));
 							}
 						}
 					}
@@ -967,7 +987,7 @@ g.web = {
 							{
 								return {
 									point: pos,
-									normal: [x - _x, y - _y, z - _z].norm()
+									normal: [x - _x, y - _y, z - _z].norm(),
 								};
 							}
 
