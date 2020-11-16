@@ -9,7 +9,6 @@
 function on_load()
 {
 
-
 const cam_colision_check = (new_pos, new_vel) => {
     const vox = g.web.assets['voxel/temple'];
     return vox.intersection(new_pos.add(vox.mesh.center_of_mass), new_vel);

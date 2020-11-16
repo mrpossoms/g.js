@@ -1,4 +1,5 @@
 var path = require('path');
+var fs = require('fs');
 var express = require('express');
 var app = express();
 var http = require('http').Server(app);
@@ -54,6 +55,47 @@ setInterval(function() {
 
 
 const PORT = process.env.PORT || 3001;
+
+// Automatic asset watcher and processor
+const { exec } = require('child_process');
+try
+{
+	var asset_map = require('./asset-map.json');
+
+	for (var asset_path in asset_map)
+	{
+		if (!fs.existsSync(asset_path))
+		{
+			console.error('Cannot watch "' + asset_path + '" path does not exist');
+			continue;
+		} 
+
+		fs.watch(asset_path, { persistent: true }, (event_type, file) => {
+			if (file[0] === '.') { return; }
+			if (file[file.length-1] === '~') { return; }
+
+			console.log(event_type + " " + file);
+
+			const src_path = path.join(asset_path, file);
+			const base_name = path.parse(src_path).name;
+			const name = base_name + '.' + path.parse(src_path).ext;
+
+			const command = asset_map[asset_path].cmd.replace('$SRC', src_path)
+													 .replace('$BASENAME', base_name)
+													 .replace('$NAME', name);
+			console.log(command);
+			exec(command);
+		});
+
+		console.log('Watching "' + asset_path + '"');
+	}
+}
+catch (e)
+{
+	console.warn('Error occured while setting up asset watch');
+	console.error(e);
+}
+
 
 // express setup
 app.use(express.static(path.join(__dirname, 'static')));
