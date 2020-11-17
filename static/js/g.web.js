@@ -243,8 +243,8 @@ g.web = {
 					coll_offsets.push([1.0, 0, -1.0].mul(0.25));
 					coll_dirs.push([0, -1, 0]);
 
-					coll_offsets.push([0, 0, 0]);
-					coll_dirs.push([0, 1, 0]);
+					// coll_offsets.push([0, 0, 0]);
+					// coll_dirs.push([0, -1, 0]);
 				}
 
 				cam.walk = {
@@ -288,7 +288,14 @@ g.web = {
 
 				cam.last_collisions = () => { return last_collisions; }
 
-				cam.is_airborn = () => { return last_collisions.length <= 0; }
+				cam.is_airborn = () => {
+					var sum = 0;
+					for (var i = 0; i < last_collisions.length; i++)
+					{
+						sum += last_collisions[i].normal.dot([0, 1, 0])
+					}
+					return sum < 0.0001;
+				}
 
 				cam.update = (dt)=> {
 					var net_force = [0, 0, 0];
@@ -309,7 +316,7 @@ g.web = {
 					{
 						const collision = opts.collides(
 							coll_offsets[i].add(new_pos),
-							coll_dirs[i].mul(dt)
+							coll_dirs[i]
 						);
 
 						if (collision)
@@ -323,6 +330,7 @@ g.web = {
 							{
 								const cancled = new_vel.mul(collision.normal.abs());
 								new_vel = new_vel.sub(cancled);
+								// cam.position(cam.position().sub([0, -1, 0].sub(collision.penetration)));
 								// const n = collision.normal;
 								// const l = new_vel.mul(-1);
 								// var vel = (n.mul(2 * n.dot(l)).sub(l));
@@ -978,13 +986,16 @@ g.web = {
 
 						if (cells[x][y][z] > 0) return {
 							point: pos,
-							normal: fp.sub(cp).norm()
+							normal: fp.sub(cp).norm(),
+							penetration: [0, 0, 0],
 						}
 
 						var itr = dir.len() / s;
 						var dd = dir.mul(1 / itr);
+						var penetration = [0, 0, 0];
 						for (var i = 0; i < itr; i++)
 						{
+							penetration = penetration.add(dd);
 							pos = pos.add(dd);
 							fp = pos.floor();
 							var _x = fp[0], _y = fp[1], _z = fp[2];
@@ -998,6 +1009,7 @@ g.web = {
 								return {
 									point: pos,
 									normal: [x - _x, y - _y, z - _z].norm(),
+									penetration: penetration,
 								};
 							}
 
