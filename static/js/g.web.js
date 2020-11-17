@@ -193,8 +193,8 @@ g.web = {
 				cam.force = 1.0;
 				cam.friction = 1.0;
 				cam.forces = [];
-				cam.max_pitch = Math.PI / 4;
-				cam.min_pitch = -Math.PI / 4;
+				cam.max_pitch = Math.PI / 2;
+				cam.min_pitch = -Math.PI / 2;
 
 				var pitch = 0;
 				var yaw = 0;
@@ -234,28 +234,37 @@ g.web = {
 					coll_offsets.push([0, -0.5, 0]);
 					coll_dirs.push([0, 0, -1].norm().mul(0.5));
 
-					coll_offsets.push([0, 0, 0]);
+					coll_offsets.push([-1.0, 0, -1.0].mul(0.25));
 					coll_dirs.push([0, -1, 0]);
+					coll_offsets.push([-1.0, 0, 1.0].mul(0.25));
+					coll_dirs.push([0, -1, 0]);
+					coll_offsets.push([1.0, 0, 1.0].mul(0.25));
+					coll_dirs.push([0, -1, 0]);
+					coll_offsets.push([1.0, 0, -1.0].mul(0.25));
+					coll_dirs.push([0, -1, 0]);
+
+					coll_offsets.push([0, 0, 0]);
+					coll_dirs.push([0, 1, 0]);
 				}
 
 				cam.walk = {
 					forward: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.5; }
+						if (cam.is_airborn()) { dt *= 0.0; }
 						var accel = cam.forward().mul(-dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					backward: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.5; }
+						if (cam.is_airborn()) { dt *= 0.0; }
 						var accel = cam.forward().mul(dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					left: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.5; }
+						if (cam.is_airborn()) { dt *= 0.0; }
 						var accel = cam.left().mul(dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					right: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.5; }
+						if (cam.is_airborn()) { dt *= 0.0; }
 						var accel = cam.left().mul(-dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					}
@@ -268,7 +277,7 @@ g.web = {
 
 				cam.tilt = (d_pitch, d_yaw) => {
 					const new_pitch = pitch + d_pitch;
-					
+
 					if (new_pitch > cam.min_pitch && new_pitch < cam.max_pitch)
 					{
 						pitch = new_pitch;
@@ -329,7 +338,7 @@ g.web = {
 
 					velocity = new_vel;
 					cam.position(cam.position().add(velocity.mul(dt)));
-					
+
 					const qx = [].quat_rotation([1, 0, 0], pitch);
 					const qy = [].quat_rotation([0, 1, 0], yaw);
 					const q = qy.quat_mul(qx)
@@ -958,6 +967,7 @@ g.web = {
 					},
 					intersection: function(pos, dir)
 					{
+						pos = pos.mul(1/s)
 						var fp = pos.floor(), cp = pos.ceil();
 						var x = fp[0], y = fp[1], z = fp[2];
 						dir = dir || [0, 0, 0];

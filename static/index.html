@@ -18,7 +18,7 @@ var cam = g.web.gfx.camera.fps({
     collides: cam_colision_check
 });
 
-cam.position([0, 0, -3]);
+cam.position([0, 0, -9]);
 cam.forces.push([0, -9, 0]);
 cam.force = 20;
 cam.friction = 5;
@@ -42,6 +42,7 @@ g.initialize(function ()
     'imgs/stars.jpg',
     'imgs/test.png',
     'voxels/temple.json',
+    'voxels/squid.json',
     'meshes/plane.json',
     'meshes/exported-cube.json'
     ];
@@ -132,6 +133,8 @@ const draw_scene = (camera, shader) => {
         .set_uniform('u_shadow_map').texture(shadow_map.depth_attachment)
         .set_uniform('u_light_view').mat4(light.view())
         .set_uniform('u_light_proj').mat4(light.projection())
+        .set_uniform('u_light_diffuse').vec3([1, 1, 1])
+        .set_uniform('u_light_ambient').vec3([135/255, 206/255, 235/255].mul(0.1))
         .draw_tris();
 
     g.web.assets['voxel/temple'].using_shader('depth_only')
@@ -155,7 +158,7 @@ g.web.draw(function (dt)
     if (g.is_running == false) { return; }
 
 
-    light.look_at([10, Math.sin(t * 0.1) * 52, Math.cos(t * 0.1) * 52], [0, 0, 0], [0, 1, 0]);
+    light.look_at([Math.sin(t * 0.1) * 20, 52, Math.cos(t * 0.1) * 20], [0, 0, 0], [0, 1, 0]);
     shadow_map.bind_as_target();
     gl.clear(gl.DEPTH_BUFFER_BIT);
     draw_scene_shadow(light.perspective(Math.PI / 4));
