@@ -234,17 +234,17 @@ g.web = {
 					coll_offsets.push([0, -0.5, 0]);
 					coll_dirs.push([0, 0, -1].norm().mul(0.5));
 
-					coll_offsets.push([-1.0, 0, -1.0].mul(0.25));
-					coll_dirs.push([0, -1, 0]);
-					coll_offsets.push([-1.0, 0, 1.0].mul(0.25));
-					coll_dirs.push([0, -1, 0]);
-					coll_offsets.push([1.0, 0, 1.0].mul(0.25));
-					coll_dirs.push([0, -1, 0]);
-					coll_offsets.push([1.0, 0, -1.0].mul(0.25));
-					coll_dirs.push([0, -1, 0]);
-
-					// coll_offsets.push([0, 0, 0]);
+					// coll_offsets.push([-1.0, 0, -1.0].mul(0.25));
 					// coll_dirs.push([0, -1, 0]);
+					// coll_offsets.push([-1.0, 0, 1.0].mul(0.25));
+					// coll_dirs.push([0, -1, 0]);
+					// coll_offsets.push([1.0, 0, 1.0].mul(0.25));
+					// coll_dirs.push([0, -1, 0]);
+					// coll_offsets.push([1.0, 0, -1.0].mul(0.25));
+					// coll_dirs.push([0, -1, 0]);
+
+					coll_offsets.push([0, 0, 0]);
+					coll_dirs.push([0, -1, 0]);
 				}
 
 				cam.walk = {
@@ -330,6 +330,7 @@ g.web = {
 							{
 								const cancled = new_vel.mul(collision.normal.abs());
 								new_vel = new_vel.sub(cancled);
+								// console.log(collision.penetration);
 								// cam.position(cam.position().sub([0, -1, 0].sub(collision.penetration)));
 								// const n = collision.normal;
 								// const l = new_vel.mul(-1);
@@ -987,17 +988,17 @@ g.web = {
 						if (cells[x][y][z] > 0) return {
 							point: pos,
 							normal: fp.sub(cp).norm(),
-							penetration: [0, 0, 0],
+							penetration: dir,
 						}
 
 						var itr = dir.len() / s;
 						var dd = dir.mul(1 / itr);
-						var penetration = [0, 0, 0];
+						
+						var it_pos = pos.slice();
 						for (var i = 0; i < itr; i++)
 						{
-							penetration = penetration.add(dd);
-							pos = pos.add(dd);
-							fp = pos.floor();
+							it_pos = it_pos.add(dd);
+							fp = it_pos.floor();
 							var _x = fp[0], _y = fp[1], _z = fp[2];
 
 							if (_x < 0 || _x >= w) { return false; }
@@ -1006,8 +1007,11 @@ g.web = {
 
 							if (cells[_x][_y][_z] > 0)
 							{
+								const p_d = pos.add(dir);
+								const penetration = p_d.sub(p_d.floor());
+
 								return {
-									point: pos,
+									point: pos.add(dir.sub(penetration)),
 									normal: [x - _x, y - _y, z - _z].norm(),
 									penetration: penetration,
 								};
