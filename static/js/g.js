@@ -64,7 +64,7 @@ const g = {
 		var update = function() {
 			var dt = step_timer.tick();
 
-			if (g.is_running && dt < 0.5)
+			if (g.is_running && (dt > 0 && dt < 1) && isFinite(dt))
 			{
 				g._update(dt);
 

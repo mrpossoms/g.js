@@ -209,42 +209,7 @@ g.web = {
 				}
 				else
 				{
-					const r = 1;
-					// for (var x = -r; x <= r; x++)
-					// for (var y = 0; y <= 0; y++)
-					// for (var z = -r; z <= r; z++)
-					// {
-					// 	if (x == 0 && z == 0) { continue; }
-					// 	// var x_s = 0.0125;
-					// 	// var z_s = 0.0125;
-					// 	// if (y == -1) { x_s = z_s = 0; }
-					// 	coll_offsets.push([0, -0.5, 0]);
-					// 	coll_dirs.push([x, y, z].norm().mul(0.5));
-					// }
-
-
-
-					// coll_offsets.push([0, -0.5, 0]);
-					// coll_dirs.push([-1, 0, 0].norm().mul(0.5));
-
-					// coll_offsets.push([0, -0.5, 0]);
-					// coll_dirs.push([1, 0, 0].norm().mul(0.5));
-
-					// coll_offsets.push([0, -0.5, 0]);
-					// coll_dirs.push([0, 0, 1].norm().mul(0.5));
-
-					// coll_offsets.push([0, -0.5, 0]);
-					// coll_dirs.push([0, 0, -1].norm().mul(0.5));
-
-					// coll_offsets.push([-1.0, 0, -1.0].mul(0.25));
-					// coll_dirs.push([0, -1, 0]);
-					// coll_offsets.push([-1.0, 0, 1.0].mul(0.25));
-					// coll_dirs.push([0, -1, 0]);
-					// coll_offsets.push([1.0, 0, 1.0].mul(0.25));
-					// coll_dirs.push([0, -1, 0]);
-					// coll_offsets.push([1.0, 0, -1.0].mul(0.25));
-					// coll_dirs.push([0, -1, 0]);
-
+					// default cube collision rep
 					for (var i = -1; i <= 1; i++)
 					{
 						if (0 == i) { continue; }
@@ -260,9 +225,6 @@ g.web = {
 						if (x + y + z == 0) { continue; }
 						coll_offsets.push([x, y, z].mul(0.25));
 					}
-
-					// coll_offsets.push([0, 0, 0]);
-					// coll_dirs.push([0, -1, 0]);
 				}
 
 				cam.walk = {
@@ -335,12 +297,12 @@ g.web = {
 					{
 						const collision = opts.collides(
 							coll_offsets[i].add(new_pos),
-							coll_dirs[j]
+							coll_dirs[j].mul(1 + dt)
 						);
 
 						if (collision)
 						{
-							if (collision.normal.dot(new_vel) - 0.001 >= 0) { continue; }
+							if (collision.normal.dot(velocity) - 0.001 >= 0) { continue; }
 
 							last_collisions.push(collision);
 
@@ -349,12 +311,6 @@ g.web = {
 							{
 								const cancled = new_vel.mul(collision.normal.abs());
 								new_vel = new_vel.sub(cancled);
-								// console.log(collision.penetration);
-								// cam.position(cam.position().sub([0, -1, 0].sub(collision.penetration)));
-								// const n = collision.normal;
-								// const l = new_vel.mul(-1);
-								// var vel = (n.mul(2 * n.dot(l)).sub(l));
-								// new_vel = vel.sub(vel.mul(1.1));
 							}
 						}
 					}
@@ -998,22 +954,14 @@ g.web = {
 						pos = pos.mul(1/s);
 						dir = dir.mul(1/s);
 						var fp = pos.floor(), cp = pos.ceil();
-						var x = fp[0], y = fp[1], z = fp[2];
-						dir = dir || [0, 0, 0];
-
-						if (x < 0 || x >= w) { return false; }
-						if (y < 0 || y >= h) { return false; }
-						if (z < 0 || z >= d) { return false; }
-
-						if (cells[x][y][z] > 0) return {
-							point: pos,
-							normal: fp.sub(cp).norm(),
-							penetration: dir,
-						}
 
 						const pd = pos.add(dir);
 						const pd_f = pd.floor();
 						const pd_c = pd.ceil();
+
+						if (pd_f[0] < 0 || pd_f[0] >= w) { return false; }
+						if (pd_f[1] < 0 || pd_f[1] >= h) { return false; }
+						if (pd_f[2] < 0 || pd_f[2] >= d) { return false; }
 
 						if (cells[pd_f[0]][pd_f[1]][pd_f[2]] > 0)
 						{
@@ -1022,37 +970,6 @@ g.web = {
 								normal: fp.sub(pd_f).norm()
 							};
 						}
-
-						/*
-						var itr = dir.len() / s;
-						var dd = dir.mul(1 / itr);
-						
-						var it_pos = pos.slice();
-						for (var i = 0; i < itr; i++)
-						{
-							it_pos = it_pos.add(dd);
-							fp = it_pos.floor();
-							var _x = fp[0], _y = fp[1], _z = fp[2];
-
-							if (_x < 0 || _x >= w) { return false; }
-							if (_y < 0 || _y >= h) { return false; }
-							if (_z < 0 || _z >= d) { return false; }
-
-							if (cells[_x][_y][_z] > 0)
-							{
-								const p_d = pos.add(dir);
-								const penetration = p_d.sub(p_d.floor());
-
-								return {
-									point: pos.add(dir.sub(penetration)),
-									normal: [x - _x, y - _y, z - _z].norm(),
-									penetration: penetration,
-								};
-							}
-
-							x = _x, y = _y, z = _z;
-						}
-						*/
 
 						return false;
 					}
