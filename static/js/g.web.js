@@ -222,17 +222,19 @@ g.web = {
 					// 	coll_dirs.push([x, y, z].norm().mul(0.5));
 					// }
 
-					coll_offsets.push([0, -0.5, 0]);
-					coll_dirs.push([-1, 0, 0].norm().mul(0.5));
 
-					coll_offsets.push([0, -0.5, 0]);
-					coll_dirs.push([1, 0, 0].norm().mul(0.5));
 
-					coll_offsets.push([0, -0.5, 0]);
-					coll_dirs.push([0, 0, 1].norm().mul(0.5));
+					// coll_offsets.push([0, -0.5, 0]);
+					// coll_dirs.push([-1, 0, 0].norm().mul(0.5));
 
-					coll_offsets.push([0, -0.5, 0]);
-					coll_dirs.push([0, 0, -1].norm().mul(0.5));
+					// coll_offsets.push([0, -0.5, 0]);
+					// coll_dirs.push([1, 0, 0].norm().mul(0.5));
+
+					// coll_offsets.push([0, -0.5, 0]);
+					// coll_dirs.push([0, 0, 1].norm().mul(0.5));
+
+					// coll_offsets.push([0, -0.5, 0]);
+					// coll_dirs.push([0, 0, -1].norm().mul(0.5));
 
 					// coll_offsets.push([-1.0, 0, -1.0].mul(0.25));
 					// coll_dirs.push([0, -1, 0]);
@@ -243,28 +245,44 @@ g.web = {
 					// coll_offsets.push([1.0, 0, -1.0].mul(0.25));
 					// coll_dirs.push([0, -1, 0]);
 
-					coll_offsets.push([0, 0, 0]);
-					coll_dirs.push([0, -1, 0]);
+					for (var i = -1; i <= 1; i++)
+					{
+						if (0 == i) { continue; }
+						coll_dirs.push([i, 0, 0].mul(0.125));
+						coll_dirs.push([0, i, 0].mul(0.125));
+						coll_dirs.push([0, 0, i].mul(0.125));
+					}
+
+					for (var x = -1; x <= 1; x++)
+					for (var y = -1; y <= 1; y++)
+					for (var z = -1; z <= 1; z++)
+					{
+						if (x + y + z == 0) { continue; }
+						coll_offsets.push([x, y, z].mul(0.25));
+					}
+
+					// coll_offsets.push([0, 0, 0]);
+					// coll_dirs.push([0, -1, 0]);
 				}
 
 				cam.walk = {
 					forward: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.0; }
+						if (cam.is_airborn()) { dt *= 0.25; }
 						var accel = cam.forward().mul(-dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					backward: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.0; }
+						if (cam.is_airborn()) { dt *= 0.25; }
 						var accel = cam.forward().mul(dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					left: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.0; }
+						if (cam.is_airborn()) { dt *= 0.25; }
 						var accel = cam.left().mul(dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					},
 					right: (dt)=> {
-						if (cam.is_airborn()) { dt *= 0.0; }
+						if (cam.is_airborn()) { dt *= 0.25; }
 						var accel = cam.left().mul(-dt * cam.force / cam.mass);
 						velocity = velocity.add(accel);
 					}
@@ -312,11 +330,12 @@ g.web = {
 					last_collisions = [];
 
 					if (opts && opts.collides)
-					for (var i = coll_dirs.length; i--;)
+					for (var i = coll_offsets.length; i--;)
+					for (var j = coll_dirs.length; j--;)
 					{
 						const collision = opts.collides(
 							coll_offsets[i].add(new_pos),
-							coll_dirs[i]
+							coll_dirs[j]
 						);
 
 						if (collision)
@@ -976,7 +995,8 @@ g.web = {
 					},
 					intersection: function(pos, dir)
 					{
-						pos = pos.mul(1/s)
+						pos = pos.mul(1/s);
+						dir = dir.mul(1/s);
 						var fp = pos.floor(), cp = pos.ceil();
 						var x = fp[0], y = fp[1], z = fp[2];
 						dir = dir || [0, 0, 0];
@@ -991,6 +1011,19 @@ g.web = {
 							penetration: dir,
 						}
 
+						const pd = pos.add(dir);
+						const pd_f = pd.floor();
+						const pd_c = pd.ceil();
+
+						if (cells[pd_f[0]][pd_f[1]][pd_f[2]] > 0)
+						{
+							return {
+								point: pos,
+								normal: fp.sub(pd_f).norm()
+							};
+						}
+
+						/*
 						var itr = dir.len() / s;
 						var dd = dir.mul(1 / itr);
 						
@@ -1019,6 +1052,7 @@ g.web = {
 
 							x = _x, y = _y, z = _z;
 						}
+						*/
 
 						return false;
 					}
