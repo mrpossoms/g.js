@@ -760,230 +760,131 @@ g.web = {
 			}
 		},
 		voxel: {
-			create: function(voxel_data)
+			create: function(voxel)
 			{
-				// process data into uniform type here.
-				var palette = null;
-				var locations = [];
-
-				// grab the palette if it exists
-				if (voxel_data.palette)
+				voxel.generate = function()
 				{
-					palette = new Array(voxel_data.palette.length / 4);
-					for (var pi = 0; pi < voxel_data.palette.length; pi += 4)
-					{
-						palette[pi >> 2] = [voxel_data.palette[pi + 0] / 255, voxel_data.palette[pi + 1] / 255, voxel_data.palette[pi + 2] / 255];//, palette[pi].a / 255];
-					}
-				}
 
-				// convert to uniform data storage
-				if (voxel_data.SIZE)
-				{
-					var cells = new Array(voxel_data.SIZE.x);
-					for (var xi = voxel_data.SIZE.x; xi--;)
-					{
-						cells[xi] = new Array(voxel_data.SIZE.z);
-						for (var yi = voxel_data.SIZE.z; yi--;)
-						{
-							cells[xi][yi] = new Array(voxel_data.SIZE.y);
-							cells[xi][yi].fill(0);
-						}
-					}
-
-					for (var vi = voxel_data.XYZI.length; vi--;)
-					{
-						const set = voxel_data.XYZI[vi];
-						const col = voxel_data.RGBA[set.c];
-
-						if ((voxel_data.SIZE.z - 1) - set.z == 40) {
-							console.log('oosp');
-						}
-						cells[set.x][set.z][set.y] = set.c;
-					}
-
-					if (typeof(voxel_data.RGBA[0]) == 'object')
-					{
-						palette = voxel_data.RGBA;
-						for (var pi = palette.length; pi--;)
-						{
-							if (!palette[pi]) { continue; }
-							palette[pi] = [palette[pi].r / 255, palette[pi].g / 255, palette[pi].b / 255];//, palette[pi].a / 255];
-						}
-					}
-
-
-					voxel_data = {
-						width: voxel_data.SIZE.x,
-						height: voxel_data.SIZE.z,
-						depth: voxel_data.SIZE.y,
-						scale: voxel_data.scale,
-						palette: palette,
-						cells: cells
+					this.mesh = {
+						positions: [],
+						normals: [],
+						colors: [],
+						texture_coords: [],
+						indices: [],
+						center_of_mass: [0, 0, 0],
 					};
-				}
+					var mesh = this.mesh;
 
-				const w = voxel_data.width;
-				const h = voxel_data.height;
-				const d = voxel_data.depth;
-				const s = voxel_data.scale || 1;
-				var cells = voxel_data.cells;
-				var center_of_mass = voxel_data.center_of_mass;
+					/*
+							x -->
 
-				var voxel = {
-					mesh: null,
-					width: w,
-					height: h,
-					depth: d,
-					scale: s,
-					cells: cells,
+						z   3---2
+						|   | / |
+						v   |/  |
+							0---1
 
-					generate: function()
+						indices [ 0, 3, 2, 0, 2, 1 ]
+					*/
+					var ii = 0;
+					var cell_count = 0;
+					for (var wi = 0; wi < voxel.width; ++wi)
+					for (var hi = 0; hi < voxel.height; ++hi)
+					for (var di = 0; di < voxel.depth; ++di)
 					{
-
-						this.mesh = {
-							positions: [],
-							normals: [],
-							colors: [],
-							texture_coords: [],
-							indices: [],
-							center_of_mass: [0, 0, 0],
-						};
-						var mesh = this.mesh;
-
-						/*
-								x -->
-
-							z   3---2
-							|   | / |
-							v   |/  |
-								0---1
-
-							indices [ 0, 3, 2, 0, 2, 1 ]
-						*/
-						var ii = 0;
-						var cell_count = 0;
-						for (var wi = 0; wi < w; ++wi)
-						for (var hi = 0; hi < h; ++hi)
-						for (var di = 0; di < d; ++di)
+						function has_neighbor_w(delta)
 						{
-							function has_neighbor_w(delta)
-							{
-								delta = wi + delta;
-								if (delta < 0 || delta >= w) { return false; }
-								return cells[delta][hi][di] > 0;
-							}
-
-							function has_neighbor_h(delta)
-							{
-								delta = hi + delta;
-								if (delta < 0 || delta >= h) { return false; }
-								return cells[wi][delta][di] > 0;
-							}
-
-							function has_neighbor_d(delta)
-							{
-								delta = di + delta;
-								if (delta < 0 || delta >= d) { return false; }
-								return cells[wi][hi][delta] > 0;
-							}
-
-							const cell = cells[wi][hi][di];
-							if (cell > 0)
-							{
-								const cell_top = has_neighbor_h(1), cell_bottom = has_neighbor_h(-1);
-								const cell_left = has_neighbor_w(-1), cell_right = has_neighbor_w(1);
-								const cell_front = has_neighbor_d(1), cell_back = has_neighbor_d(-1);
-
-								const x = wi * s, y = hi * s, z = di * s;
-								if (!cell_bottom) mesh.positions.push(x + 0, y + 0, z + 0, x + s, y + 0, z + 0, x + s, y + 0, z + s, x + 0, y + 0, z + s); // bottom 00-03
-								if (!cell_left)   mesh.positions.push(x + 0, y + 0, z + 0, x + 0, y + s, z + 0, x + 0, y + s, z + s, x + 0, y + 0, z + s); // left   04-07
-								if (!cell_front)  mesh.positions.push(x + 0, y + 0, z + s, x + 0, y + s, z + s, x + s, y + s, z + s, x + s, y + 0, z + s); // front  08-12
-								if (!cell_right)  mesh.positions.push(x + s, y + 0, z + 0, x + s, y + s, z + 0, x + s, y + s, z + s, x + s, y + 0, z + s); // right  13-17
-								if (!cell_back)   mesh.positions.push(x + 0, y + 0, z + 0, x + 0, y + s, z + 0, x + s, y + s, z + 0, x + s, y + 0, z + 0); // back   18-22
-								if (!cell_top)    mesh.positions.push(x + 0, y + s, z + 0, x + s, y + s, z + 0, x + s, y + s, z + s, x + 0, y + s, z + s); // top    23-27
-
-								if (!cell_bottom) mesh.texture_coords.push( 0.00, 1.00,  1/6, 1.00,  1/6, 0.00, 0.00, 0.00 ); // bottom
-								if (!cell_left)   mesh.texture_coords.push(  4/6, 0.00,  4/6, 1.00,  3/6, 1.00,  3/6, 0.00 ); // left
-								if (!cell_front)  mesh.texture_coords.push(  5/6, 0.00,  5/6, 1.00,  4/6, 1.00,  4/6, 0.00 ); // front
-								if (!cell_right)  mesh.texture_coords.push(  1/6, 0.00,  1/6, 1.00,  2/6, 1.00,  2/6, 0.00 ); // right
-								if (!cell_back)   mesh.texture_coords.push(  2/6, 0.00,  2/6, 1.00,  3/6, 1.00,  3/6, 0.00 ); // back
-								if (!cell_top)    mesh.texture_coords.push(  5/6, 0.00, 1.00, 0.00, 1.00, 1.00,  5/6, 1.00 ); // top
-
-								if (palette)
-								{
-									const color = palette[cell];
-									const r = color[0], g = color[1], b = color[2]
-									if (!cell_bottom) mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // bottom
-									if (!cell_left)   mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // left
-									if (!cell_front)  mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // front
-									if (!cell_right)  mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // right
-									if (!cell_back)   mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // back
-									if (!cell_top)    mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // top
-								}
-
-								if (!cell_bottom) mesh.normals.push( 0,-1, 0, 0,-1, 0, 0,-1, 0, 0,-1, 0 ); // bottom
-								if (!cell_left)   mesh.normals.push(-1, 0, 0,-1, 0, 0,-1, 0, 0,-1, 0, 0 ); // left
-								if (!cell_front)  mesh.normals.push( 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1 ); // front
-								if (!cell_right)  mesh.normals.push( 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0 ); // right
-								if (!cell_back)   mesh.normals.push( 0, 0,-1, 0, 0,-1, 0, 0,-1, 0, 0,-1 ); // back
-								if (!cell_top)    mesh.normals.push( 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0 ); // top
-
-								if (!cell_bottom) { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
-								if (!cell_left)   { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
-								if (!cell_front)  { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
-								if (!cell_right)  { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
-								if (!cell_back)   { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
-								if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
-
-								mesh.center_of_mass = mesh.center_of_mass.add([x, y, z]);
-								cell_count++;
-							}
+							delta = wi + delta;
+							if (delta < 0 || delta >= voxel.width) { return false; }
+							return voxel.cells[delta][hi][di] > 0;
 						}
 
-						mesh.center_of_mass = mesh.center_of_mass.mul(1 / cell_count);
-
-						for (var pi = 0; pi < mesh.positions.length; pi += 3)
+						function has_neighbor_h(delta)
 						{
-							mesh.positions[pi + 0] = mesh.positions[pi + 0] - mesh.center_of_mass[0];
-							mesh.positions[pi + 1] = mesh.positions[pi + 1] - mesh.center_of_mass[1];
-							mesh.positions[pi + 2] = mesh.positions[pi + 2] - mesh.center_of_mass[2];
+							delta = hi + delta;
+							if (delta < 0 || delta >= voxel.height) { return false; }
+							return voxel.cells[wi][delta][di] > 0;
 						}
-					},
-					intersection: function(pos, dir)
+
+						function has_neighbor_d(delta)
+						{
+							delta = di + delta;
+							if (delta < 0 || delta >= voxel.depth) { return false; }
+							return voxel.cells[wi][hi][delta] > 0;
+						}
+
+						const cell = voxel.cells[wi][hi][di];
+						if (cell > 0)
+						{
+							const cell_top = has_neighbor_h(1), cell_bottom = has_neighbor_h(-1);
+							const cell_left = has_neighbor_w(-1), cell_right = has_neighbor_w(1);
+							const cell_front = has_neighbor_d(1), cell_back = has_neighbor_d(-1);
+
+							const s = voxel.scale;
+							const x = wi * s, y = hi * s, z = di * s;
+							if (!cell_bottom) mesh.positions.push(x + 0, y + 0, z + 0, x + s, y + 0, z + 0, x + s, y + 0, z + s, x + 0, y + 0, z + s); // bottom 00-03
+							if (!cell_left)   mesh.positions.push(x + 0, y + 0, z + 0, x + 0, y + s, z + 0, x + 0, y + s, z + s, x + 0, y + 0, z + s); // left   04-07
+							if (!cell_front)  mesh.positions.push(x + 0, y + 0, z + s, x + 0, y + s, z + s, x + s, y + s, z + s, x + s, y + 0, z + s); // front  08-12
+							if (!cell_right)  mesh.positions.push(x + s, y + 0, z + 0, x + s, y + s, z + 0, x + s, y + s, z + s, x + s, y + 0, z + s); // right  13-17
+							if (!cell_back)   mesh.positions.push(x + 0, y + 0, z + 0, x + 0, y + s, z + 0, x + s, y + s, z + 0, x + s, y + 0, z + 0); // back   18-22
+							if (!cell_top)    mesh.positions.push(x + 0, y + s, z + 0, x + s, y + s, z + 0, x + s, y + s, z + s, x + 0, y + s, z + s); // top    23-27
+
+							if (!cell_bottom) mesh.texture_coords.push( 0.00, 1.00,  1/6, 1.00,  1/6, 0.00, 0.00, 0.00 ); // bottom
+							if (!cell_left)   mesh.texture_coords.push(  4/6, 0.00,  4/6, 1.00,  3/6, 1.00,  3/6, 0.00 ); // left
+							if (!cell_front)  mesh.texture_coords.push(  5/6, 0.00,  5/6, 1.00,  4/6, 1.00,  4/6, 0.00 ); // front
+							if (!cell_right)  mesh.texture_coords.push(  1/6, 0.00,  1/6, 1.00,  2/6, 1.00,  2/6, 0.00 ); // right
+							if (!cell_back)   mesh.texture_coords.push(  2/6, 0.00,  2/6, 1.00,  3/6, 1.00,  3/6, 0.00 ); // back
+							if (!cell_top)    mesh.texture_coords.push(  5/6, 0.00, 1.00, 0.00, 1.00, 1.00,  5/6, 1.00 ); // top
+
+							if (voxel.palette)
+							{
+								const color = voxel.palette[cell];
+								const r = color[0], g = color[1], b = color[2]
+								if (!cell_bottom) mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // bottom
+								if (!cell_left)   mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // left
+								if (!cell_front)  mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // front
+								if (!cell_right)  mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // right
+								if (!cell_back)   mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // back
+								if (!cell_top)    mesh.colors.push(r, g, b, r, g, b, r, g, b, r, g, b); // top
+							}
+
+							if (!cell_bottom) mesh.normals.push( 0,-1, 0, 0,-1, 0, 0,-1, 0, 0,-1, 0 ); // bottom
+							if (!cell_left)   mesh.normals.push(-1, 0, 0,-1, 0, 0,-1, 0, 0,-1, 0, 0 ); // left
+							if (!cell_front)  mesh.normals.push( 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1 ); // front
+							if (!cell_right)  mesh.normals.push( 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0 ); // right
+							if (!cell_back)   mesh.normals.push( 0, 0,-1, 0, 0,-1, 0, 0,-1, 0, 0,-1 ); // back
+							if (!cell_top)    mesh.normals.push( 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0 ); // top
+
+							if (!cell_bottom) { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
+							if (!cell_left)   { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
+							if (!cell_front)  { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
+							if (!cell_right)  { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
+							if (!cell_back)   { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
+							if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
+
+							mesh.center_of_mass = mesh.center_of_mass.add([x, y, z]);
+							cell_count++;
+						}
+					}
+
+					mesh.center_of_mass = mesh.center_of_mass.mul(1 / cell_count);
+
+					for (var pi = 0; pi < mesh.positions.length; pi += 3)
 					{
-						pos = pos.mul(1/s);
-						dir = dir.mul(1/s);
-						var fp = pos.floor(), cp = pos.ceil();
-
-						const pd = pos.add(dir);
-						const pd_f = pd.floor();
-						const pd_c = pd.ceil();
-
-						if (pd_f[0] < 0 || pd_f[0] >= w) { return false; }
-						if (pd_f[1] < 0 || pd_f[1] >= h) { return false; }
-						if (pd_f[2] < 0 || pd_f[2] >= d) { return false; }
-
-						if (cells[pd_f[0]][pd_f[1]][pd_f[2]] > 0)
-						{
-							return {
-								point: pos,
-								normal: fp.sub(pd_f).norm()
-							};
-						}
-
-						return false;
+						mesh.positions[pi + 0] = mesh.positions[pi + 0] - mesh.center_of_mass[0];
+						mesh.positions[pi + 1] = mesh.positions[pi + 1] - mesh.center_of_mass[1];
+						mesh.positions[pi + 2] = mesh.positions[pi + 2] - mesh.center_of_mass[2];
 					}
 				};
 
 				voxel.generate();
 				var gl_mesh = g.web.gfx.mesh.create(voxel.mesh);
 
-				for (var key in voxel)
+				for (var key in gl_mesh)
 				{
-					gl_mesh[key] = voxel[key];
+					voxel[key] = gl_mesh[key];
 				}
 
-				return gl_mesh;
+				return voxel;
 			}
 		},
 		sprite: {
@@ -1227,7 +1128,7 @@ g.web = {
 								else if (path.indexOf('voxels') > -1)
 								{
 									const mesh_name = path.replace('voxels', 'voxel').replace('.json', '');
-									g.web.assets[mesh_name] = g.web.gfx.voxel.create(g.web.assets[path]);
+									g.web.assets[mesh_name] = g.web.gfx.voxel.create(g.voxel.create(g.web.assets[path]));
 								}
 								else if (path.indexOf('animations') > -1)
 								{

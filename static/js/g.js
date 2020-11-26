@@ -79,6 +79,133 @@ const g = {
 
 		if (g.web) { req_frame(update); }
 	},
+
+	voxel: {
+		create: function(voxel_data)
+		{
+			// process data into uniform type here.
+			var palette = null;
+			var locations = [];
+
+			// grab the palette if it exists
+			if (voxel_data.palette)
+			{
+				palette = new Array(voxel_data.palette.length / 4);
+				for (var pi = 0; pi < voxel_data.palette.length; pi += 4)
+				{
+					palette[pi >> 2] = [voxel_data.palette[pi + 0] / 255, voxel_data.palette[pi + 1] / 255, voxel_data.palette[pi + 2] / 255];//, palette[pi].a / 255];
+				}
+			}
+
+			// convert to uniform data storage
+			if (voxel_data.SIZE)
+			{
+				var cells = new Array(voxel_data.SIZE.x);
+				for (var xi = voxel_data.SIZE.x; xi--;)
+				{
+					cells[xi] = new Array(voxel_data.SIZE.z);
+					for (var yi = voxel_data.SIZE.z; yi--;)
+					{
+						cells[xi][yi] = new Array(voxel_data.SIZE.y);
+						cells[xi][yi].fill(0);
+					}
+				}
+
+				for (var vi = voxel_data.XYZI.length; vi--;)
+				{
+					const set = voxel_data.XYZI[vi];
+					const col = voxel_data.RGBA[set.c];
+
+					if ((voxel_data.SIZE.z - 1) - set.z == 40) {
+						console.log('oosp');
+					}
+					cells[set.x][set.z][set.y] = set.c;
+				}
+
+				if (typeof(voxel_data.RGBA[0]) == 'object')
+				{
+					palette = voxel_data.RGBA;
+					for (var pi = palette.length; pi--;)
+					{
+						if (!palette[pi]) { continue; }
+						palette[pi] = [palette[pi].r / 255, palette[pi].g / 255, palette[pi].b / 255];//, palette[pi].a / 255];
+					}
+				}
+
+
+				voxel_data = {
+					width: voxel_data.SIZE.x,
+					height: voxel_data.SIZE.z,
+					depth: voxel_data.SIZE.y,
+					scale: voxel_data.scale,
+					palette: palette,
+					cells: cells
+				};
+			}
+
+			const w = voxel_data.width;
+			const h = voxel_data.height;
+			const d = voxel_data.depth;
+			const s = voxel_data.scale || 1;
+			var cells = voxel_data.cells;
+			var center_of_mass = [0, 0, 0];
+
+			return {
+				width: w,
+				height: h,
+				depth: d,
+				scale: s,
+				palette: palette,
+				cells: cells,
+				center_of_mass: function(force)
+				{
+					if (force || center_of_mass.sum() == 0)
+					{
+						center_of_mass = [0, 0, 0];
+						var cell_count = 0;
+						for (var x = w; x--;)
+						for (var y = h; y--;)
+						for (var z = d; z--;)
+						{
+							if (cells[x][y][z] > 0)
+							{
+								center_of_mass = center_of_mass.add([x, y, z]);
+								cell_count++;
+							} 
+						}
+
+						center_of_mass = center_of_mass.mul(1 / cell_count);
+					}
+
+					return center_of_mass;
+				},
+				intersection: function(pos, dir)
+				{
+					pos = pos.mul(1/s);
+					dir = dir.mul(1/s);
+					var fp = pos.floor(), cp = pos.ceil();
+
+					const pd = pos.add(dir);
+					const pd_f = pd.floor();
+					const pd_c = pd.ceil();
+
+					if (pd_f[0] < 0 || pd_f[0] >= w) { return false; }
+					if (pd_f[1] < 0 || pd_f[1] >= h) { return false; }
+					if (pd_f[2] < 0 || pd_f[2] >= d) { return false; }
+
+					if (cells[pd_f[0]][pd_f[1]][pd_f[2]] > 0)
+					{
+						return {
+							point: pos,
+							normal: fp.sub(pd_f).norm()
+						};
+					}
+
+					return false;
+				}
+			};;
+		}
+	}
 };
 
 Array.prototype.within_sphere = function(sphere, position_key, item_cb)
@@ -111,6 +238,13 @@ Array.prototype.new_matrix = function(rows, cols)
 	}
 	return M;
 };
+
+Array.prototype.sum = function()
+{
+	var sum = 0;
+	for (var i = this.length; i--;) { sum += this[i]; }
+	return sum;
+}
 
 Array.prototype.add = function(v)
 {
