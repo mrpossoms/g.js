@@ -2,16 +2,22 @@ const g = require('./static/js/g.js');
 
 
 module.exports.server = {
+
 	// map of all connected players
 	players: {},
+
+
 	// complete game state
 	state: {},
+
+
 	// server initialization goes here
 	setup: function(state)
 	{
-		console.log(g.g);
 		state.world = g.voxel.create(require('./static/voxels/temple.json'));
 	},
+
+
 	// handlers for all player connection events
 	player: {
 		connected: function(player, state)
@@ -38,43 +44,47 @@ module.exports.server = {
 				player.cam.pitch(pitch_yaw[0]);
 				player.cam.yaw(pitch_yaw[1]);
 			});
+
+			player.on('jump', () => {
+				if (!player.cam.is_airborn())
+				{
+					player.cam.velocity(player.cam.velocity().add([0, 6, 0])); 
+				}
+			});
 		},
+
 		update: function(player, dt)
 		{
-			if (player.walk_dir[0] > 0)
-			{
-				player.cam.walk.right(dt);
-				console.log(player.id + " walk right");
-			}
-			else if (player.walk_dir[0] < 0)
-			{
-				player.cam.walk.left(dt);
-				console.log(player.id + " walk left");
-			}
+			if (player.walk_dir[0] > 0)      { player.cam.walk.right(dt); }
+			else if (player.walk_dir[0] < 0) { player.cam.walk.left(dt); }
 
-			if (player.walk_dir[1] > 0)
-			{
-				player.cam.walk.forward(dt);
-				console.log(player.id + " walk forward");
-			}
-			else if (player.walk_dir[1] < 0)
-			{
-				player.cam.walk.backward(dt);
-				console.log(player.id + " walk backward");
-			}
+			if (player.walk_dir[1] > 0)      { player.cam.walk.forward(dt); }
+			else if (player.walk_dir[1] < 0) { player.cam.walk.backward(dt); }
 
 			player.cam.update(dt);
-
-			player.emit('pos', (player.cam.position()));
 		},
+
 		disconnected: function(player)
 		{
 			console.log('player: ' + player.id + ' disconnected');
 		}
 	},
+
+
 	// main game loop
-	update: function(dt, players)
+	update: function(players, dt)
 	{
 
+	},
+
+
+	send_states: function(players, state)
+	{
+		for (var id in players)
+		{
+			console.log('player: ' + id + ' update');
+			players[id].emit('pos', (players[id].cam.position()));
+			players[id].emit('vel', (players[id].cam.velocity()));
+		}
 	}
 };

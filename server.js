@@ -39,14 +39,25 @@ io.on('connection', function(player) {
 });
 
 // game mainloop
-const dt = 1 / 30;
+const dt = 1 / 100;
+var msg = {
+	rate: 1 / 10,
+	time_since_last: 1,
+};
 setInterval(function() {
-	game.server.update(dt, game.server.players);
+	game.server.update(game.server.players, dt);
 
 	for (var player_key in game.server.players)
 	{
 		var player = game.server.players[player_key];
 		game.server.player.update(player, dt);
+	}
+
+	msg.time_since_last += dt;
+	if (msg.time_since_last >= msg.rate)
+	{
+		msg.time_since_last = 0;
+		game.server.send_states(game.server.players, game.server.state);
 	}
 }, dt * 1000);
 

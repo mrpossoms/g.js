@@ -458,9 +458,16 @@ const g = {
 				for (var i = coll_offsets.length; i--;)
 				for (var j = coll_dirs.length; j--;)
 				{
+					var dir = coll_dirs[j];
+					// var dot = dir.dot(new_vel.mul(dt));
+					// if (dot > 1)
+					// {
+					// 	dir = dir.add(new_vel.mul(dt));
+					// }
+
 					const collision = opts.collides(
-						coll_offsets[i].add(new_pos),
-						coll_dirs[j].mul(1 + dt)
+						coll_offsets[i].add(cam.position()),
+						dir
 					);
 
 					if (collision)

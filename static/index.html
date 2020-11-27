@@ -97,6 +97,10 @@ g.web.on('pos').do((pos) => {
     cam.position(pos);
 });
 
+g.web.on('vel').do((pos) => {
+    cam.velocity(pos);
+});
+
 
 g.update(function (dt)
 {
@@ -118,10 +122,10 @@ g.update(function (dt)
         g.web.signal('walk', vec);
         walk_action = vec;
     }
-    // if (g.web.key.is_pressed(' ') && !cam.is_airborn())
-    // {
-    //     cam.velocity(cam.velocity().add([0, 6, 0]));
-    // }
+    if (g.web.key.is_pressed(' ') && !cam.is_airborn())
+    {
+        g.web.signal('jump');
+    }
 });
 
 var t = 0;
