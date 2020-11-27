@@ -205,7 +205,290 @@ const g = {
 				}
 			};;
 		}
-	}
+	},
+
+	camera: {
+		create: function()
+		{
+			var _q = [0,0,0,1];
+			var _view = [].I(4);
+			var _proj = [].I(4);
+			var _pos = [0,0,0];
+			var _forward = [0,0,-1];
+			var _up = [0,1,0];
+			var _left = [-1,0,0];
+			var is_listener = true;
+
+			var cam = {
+				look_at: function(position, subject, up)
+				{
+					if (position && subject && up)
+					{
+						_pos = position;
+						_forward = position.sub(subject).norm();
+						_up = up.norm();
+						_view = [].view(_pos, _forward, _up);
+						_left = _q.quat_rotate_vector([-1, 0, 0]);
+					}
+
+					return _view;
+				},
+				orientation: function(q)
+				{
+					if (q) { _q = q; }
+
+					_up = _q.quat_rotate_vector([0, 1, 0]);
+					_forward = _q.quat_rotate_vector([0, 0, -1]);
+					_left = _q.quat_rotate_vector([-1, 0, 0]);
+
+					return _q;
+				},
+				tilt: function(d_yaw, d_pitch, d_roll)
+				{
+					d_yaw = d_yaw || 0;
+					d_pitch = d_pitch || 0;
+					d_roll = d_roll || 0;
+
+					const dqx = [].quat_rotation([1, 0, 0], d_yaw);
+					const dqy = [].quat_rotation([0, 1, 0], d_pitch);
+					const dqz = [].quat_rotation([0, 0, 1], d_roll);
+					const dq = dqx.quat_mul(dqy).quat_mul(dqz);
+					_q = _q.quat_mul(dq);
+
+					_up = _q.quat_rotate_vector([0, 1, 0]);
+					_forward = _q.quat_rotate_vector([0, 0, -1]);
+					_left = _q.quat_rotate_vector([-1, 0, 0]);
+
+					this.view(_pos, _forward, _up);
+				},
+				position: function(p)
+				{
+					if (p)
+					{
+						_pos = p;
+						this.view(_pos, _forward, _up);
+					}
+
+					return _pos;
+				},
+				up: function(u)
+				{
+					if (u)
+					{
+						_up = u;
+						this.view(_pos, _forward, _up);
+					}
+
+					return _up;
+				},
+				left: function()
+				{
+					return _left;
+				},
+				forward: function(f)
+				{
+					if (f)
+					{
+						_forward = f;
+						this.view(_pos, _forward, _up);
+					}
+
+					return _forward;
+				},
+				projection: function() { return _proj; },
+				perspective: function(fov, near, far)
+				{
+					fov = fov || Math.PI / 2;
+					near = near || 0.1;
+					far = far || 500;
+
+					_proj = [].perspective(fov, g.web.gfx.aspect(), near, far);
+
+					return this;
+				},
+				orthographic: function(near, far)
+				{
+					const a = g.web.gfx.aspect();
+					near = near || 0.1;
+					far = far || 100;
+					_proj = [].orthographic(-a, a, -1, 1, near, far);
+
+					return this;
+				}
+			};
+
+			cam.view = (position, forward, up) => {
+				if (position && forward && up)
+				{
+					_pos = position;
+					_forward = forward.norm();
+					_up = up.norm();
+					_left = _up.cross(_forward);
+					_up = _forward.cross(_left);
+					_view = [].view(_pos, _forward, _up);
+					// _left = _q.quat_rotate_vector([-1, 0, 0]);
+
+					if (is_listener && g.web && g.web._audio_ctx) { g.web.snd.listener.from_camera(cam); }
+				}
+
+				return _view;
+			};
+
+			return cam;
+		},
+		fps: function(opts)
+		{
+			var cam = g.camera.create();
+
+			cam.mass = 1.0;
+			cam.force = 1.0;
+			cam.friction = 1.0;
+			cam.forces = [];
+			cam.max_pitch = Math.PI / 2;
+			cam.min_pitch = -Math.PI / 2;
+
+			var pitch = 0;
+			var yaw = 0;
+			var velocity = [0, 0, 0];
+			var last_collisions = [];
+			var coll_offsets = [];
+			var coll_dirs = [];
+
+			if (opts && opts.collision_rep)
+			{
+
+			}
+			else
+			{
+				// default cube collision rep
+				for (var i = -1; i <= 1; i++)
+				{
+					if (0 == i) { continue; }
+					coll_dirs.push([i, 0, 0].mul(0.125));
+					coll_dirs.push([0, i, 0].mul(0.125));
+					coll_dirs.push([0, 0, i].mul(0.125));
+				}
+
+				for (var x = -1; x <= 1; x++)
+				for (var y = -1; y <= 1; y++)
+				for (var z = -1; z <= 1; z++)
+				{
+					if (x + y + z == 0) { continue; }
+					coll_offsets.push([x, y, z].mul(0.25));
+				}
+			}
+
+			cam.walk = {
+				forward: (dt)=> {
+					if (cam.is_airborn()) { dt *= 0.25; }
+					var accel = cam.forward().mul(-dt * cam.force / cam.mass);
+					velocity = velocity.add(accel);
+				},
+				backward: (dt)=> {
+					if (cam.is_airborn()) { dt *= 0.25; }
+					var accel = cam.forward().mul(dt * cam.force / cam.mass);
+					velocity = velocity.add(accel);
+				},
+				left: (dt)=> {
+					if (cam.is_airborn()) { dt *= 0.25; }
+					var accel = cam.left().mul(dt * cam.force / cam.mass);
+					velocity = velocity.add(accel);
+				},
+				right: (dt)=> {
+					if (cam.is_airborn()) { dt *= 0.25; }
+					var accel = cam.left().mul(-dt * cam.force / cam.mass);
+					velocity = velocity.add(accel);
+				}
+			};
+
+			cam.velocity = (vel) => {
+				if (vel) { velocity = vel; }
+				else { return velocity; }
+			};
+
+			cam.tilt = (d_pitch, d_yaw) => {
+				const new_pitch = pitch + d_pitch;
+
+				if (new_pitch > cam.min_pitch && new_pitch < cam.max_pitch)
+				{
+					pitch = new_pitch;
+				}
+
+				yaw += d_yaw;
+			};
+
+			cam.last_collisions = () => { return last_collisions; }
+
+			cam.is_airborn = () => {
+				var sum = 0;
+				for (var i = 0; i < last_collisions.length; i++)
+				{
+					sum += last_collisions[i].normal.dot([0, 1, 0])
+				}
+				return sum < 0.0001;
+			}
+
+			cam.update = (dt)=> {
+				var net_force = [0, 0, 0];
+
+				for (var i = 0; i < cam.forces.length; i++)
+				{
+					net_force = net_force.add(cam.forces[i]);
+				}
+
+				const net_accel = net_force.mul(dt / cam.mass);
+				var new_vel = velocity.add(net_accel);
+				const new_pos = cam.position().add(new_vel.mul(dt));
+
+				last_collisions = [];
+
+				if (opts && opts.collides)
+				for (var i = coll_offsets.length; i--;)
+				for (var j = coll_dirs.length; j--;)
+				{
+					const collision = opts.collides(
+						coll_offsets[i].add(new_pos),
+						coll_dirs[j].mul(1 + dt)
+					);
+
+					if (collision)
+					{
+						if (collision.normal.dot(velocity) - 0.001 >= 0) { continue; }
+
+						last_collisions.push(collision);
+
+						if (opts.on_collision) { opts.on_collision(cam, collision); }
+						else
+						{
+							const cancled = new_vel.mul(collision.normal.abs());
+							new_vel = new_vel.sub(cancled);
+						}
+					}
+				}
+
+				if (last_collisions.length > 0)
+				{
+					new_vel = new_vel.add(new_vel.mul(-cam.friction * dt));
+				}
+
+				velocity = new_vel;
+				cam.position(cam.position().add(velocity.mul(dt)));
+
+				const qx = [].quat_rotation([1, 0, 0], pitch);
+				const qy = [].quat_rotation([0, 1, 0], yaw);
+				const q = qy.quat_mul(qx)
+
+				cam.up(q.quat_rotate_vector([0, 1, 0]));
+				cam.forward(q.quat_rotate_vector([0, 0, -1]));
+				// cam._left = cam._q.quat_rotate_vector([-1, 0, 0]));
+
+				cam.view(cam.position(), cam.forward(), cam.up());
+
+			};
+
+			return cam;
+		}
+	},
 };
 
 Array.prototype.within_sphere = function(sphere, position_key, item_cb)
@@ -995,7 +1278,7 @@ Math.model_matrix = function(obj)
 
 try
 {
-	module.exports.g = g;
+	module.exports = g;
 	module.exports.for_each = for_each;
 }
 catch(e)

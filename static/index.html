@@ -14,7 +14,7 @@ const cam_colision_check = (new_pos, new_vel) => {
     return vox.intersection(new_pos.add(vox.center_of_mass()), new_vel);
 }
 
-var cam = g.web.gfx.camera.fps({
+var cam = g.camera.fps({
     collides: cam_colision_check
 });
 
@@ -24,7 +24,8 @@ cam.force = 20;
 cam.friction = 5;
 
 var shadow_map = null;
-var light = g.web.gfx.camera.create();
+var light = g.camera.create();
+var walk_action = [0, 0];
 
 g.web.canvas(document.getElementsByTagName('canvas')[0]);
 
@@ -85,28 +86,40 @@ g.web.pointer.on_press((event) => {
 });
 
 
-g.web.on_message(function (msg)
-{
+// g.web.on_message(function (msg)
+// {
+//     console.log(msg);
+// });
+
+g.web.on('state', (state) => {
 
 });
 
 
 g.update(function (dt)
 {
+    var vec = [0, 0];
+
     const forward = cam.forward();
     const up = cam.up();
     const left = cam.left();
 
     cam.update(dt);
 
-	if (g.web.key.is_pressed('w')) { cam.walk.forward(dt); }
-    if (g.web.key.is_pressed('s')) { cam.walk.backward(dt); }
-    if (g.web.key.is_pressed('a')) { cam.walk.left(dt); }
-    if (g.web.key.is_pressed('d')) { cam.walk.right(dt); }
-    if (g.web.key.is_pressed(' ') && !cam.is_airborn())
+	if (g.web.key.is_pressed('w')) { vec.add([ 0, 1 ]); }
+    if (g.web.key.is_pressed('s')) { vec.add([ 0,-1 ]); }
+    if (g.web.key.is_pressed('a')) { vec.add([-1, 0 ]); }
+    if (g.web.key.is_pressed('d')) { vec.add([ 1, 0 ]); }
+
+    if (!vec.eq(walk_action))
     {
-        cam.velocity(cam.velocity().add([0, 6, 0]));
+        g.web.signal('walk', vec);
+        walk_action = vec;
     }
+    // if (g.web.key.is_pressed(' ') && !cam.is_airborn())
+    // {
+    //     cam.velocity(cam.velocity().add([0, 6, 0]));
+    // }
 });
 
 var t = 0;
@@ -124,7 +137,7 @@ const draw_scene_shadow = (camera) => {
 
 const draw_scene = (camera, shader) => {
 
-    var chain = g.web.assets['voxel/temple'].using_shader('basic_colored')
+    g.web.assets['voxel/temple'].using_shader('basic_colored')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_attribute({name:'a_normal', buffer: 'normals', components: 3})
         .with_attribute({name:'a_color', buffer: 'colors', components: 3})
@@ -134,9 +147,8 @@ const draw_scene = (camera, shader) => {
         .set_uniform('u_light_view').mat4(light.view())
         .set_uniform('u_light_proj').mat4(light.projection())
         .set_uniform('u_light_diffuse').vec3([1, 1, 1])
-        .set_uniform('u_light_ambient').vec3([135/255, 206/255, 235/255].mul(0.1));
-
-    chain.draw_tris();
+        .set_uniform('u_light_ambient').vec3([135/255, 206/255, 235/255].mul(0.1))
+        .draw_tris();
 
     g.web.assets['voxel/temple'].using_shader('depth_only')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})

@@ -20,7 +20,8 @@ function new_player_id()
 	return id;
 }
 
-// game.server.setup(50);
+// allow game server to initialize game state, etc
+game.server.setup(game.server.state);
 
 // socket io setup
 io.on('connection', function(player) {
@@ -29,11 +30,7 @@ io.on('connection', function(player) {
 	player.id = player_id;
 	game.server.players[player_id] = player;
 
-	game.server.player.connected(player);
-
-	player.on('message', function (msg) {
-		game.server.player.on_message(player, msg);
-	});
+	game.server.player.connected(player, game.server.state);
 
 	player.on('disconnect', function() {
 		game.server.player.disconnected(player);
@@ -44,7 +41,7 @@ io.on('connection', function(player) {
 // game mainloop
 const dt = 1 / 30;
 setInterval(function() {
-	game.server.update(dt);
+	game.server.update(dt, game.server.players);
 
 	for (var player_key in game.server.players)
 	{
