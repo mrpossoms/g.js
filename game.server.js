@@ -24,38 +24,48 @@ module.exports.server = {
 			};
 
 			player.cam = g.camera.fps({ collides: cam_colision_check });
+			player.cam.position([0, 10, 0]);
+			player.cam.forces.push([0, -9, 0]);
+			player.cam.force = 20;
+			player.cam.friction = 5;
 			player.walk_dir = [0, 0];
 
 			player.on('walk', (walk_dir) => {
 				player.walk_dir = walk_dir;
+			});
+
+			player.on('angles', (pitch_yaw) => {
+				player.cam.pitch(pitch_yaw[0]);
+				player.cam.yaw(pitch_yaw[1]);
 			});
 		},
 		update: function(player, dt)
 		{
 			if (player.walk_dir[0] > 0)
 			{
-				player.cam.walk_right(dt);
+				player.cam.walk.right(dt);
 				console.log(player.id + " walk right");
 			}
 			else if (player.walk_dir[0] < 0)
 			{
-				player.cam.walk_left(dt);
+				player.cam.walk.left(dt);
 				console.log(player.id + " walk left");
 			}
 
 			if (player.walk_dir[1] > 0)
 			{
-				player.cam.walk_forward(dt);
+				player.cam.walk.forward(dt);
 				console.log(player.id + " walk forward");
 			}
 			else if (player.walk_dir[1] < 0)
 			{
-				player.cam.walk_backward(dt);
+				player.cam.walk.backward(dt);
 				console.log(player.id + " walk backward");
 			}
 
 			player.cam.update(dt);
-			// player.emit('message', Uint8Array.from([1, 2, 3, 4]));
+
+			player.emit('pos', (player.cam.position()));
 		},
 		disconnected: function(player)
 		{

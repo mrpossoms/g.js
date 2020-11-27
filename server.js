@@ -65,7 +65,7 @@ try
 		{
 			console.error('Cannot watch "' + asset_path + '" path does not exist');
 			continue;
-		} 
+		}
 
 		fs.watch(asset_path, { persistent: true }, (event_type, file) => {
 			if (file[0] === '.') { return; }

@@ -171,7 +171,7 @@ const g = {
 							{
 								center_of_mass = center_of_mass.add([x, y, z]);
 								cell_count++;
-							} 
+							}
 						}
 
 						center_of_mass = center_of_mass.mul(1 / cell_count);
@@ -195,9 +195,11 @@ const g = {
 
 					if (cells[pd_f[0]][pd_f[1]][pd_f[2]] > 0)
 					{
+						var norm = fp.sub(pd_f);
+						if (norm.dot(norm) > 0) { norm = norm.norm(); }
 						return {
 							point: pos,
-							normal: fp.sub(pd_f).norm()
+							normal: norm
 						};
 					}
 
@@ -417,6 +419,16 @@ const g = {
 				yaw += d_yaw;
 			};
 
+			cam.pitch = (p) => {
+				if (p) { pitch = p; }
+				return pitch;
+			};
+
+			cam.yaw = (y) => {
+				if (y) { yaw = y; }
+				return yaw;
+			};
+
 			cam.last_collisions = () => { return last_collisions; }
 
 			cam.is_airborn = () => {
@@ -469,6 +481,11 @@ const g = {
 				if (last_collisions.length > 0)
 				{
 					new_vel = new_vel.add(new_vel.mul(-cam.friction * dt));
+				}
+
+				if (!isFinite(new_vel[0]))
+				{
+					console.log('why');
 				}
 
 				velocity = new_vel;

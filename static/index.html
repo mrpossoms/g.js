@@ -79,6 +79,8 @@ g.initialize(function ()
 g.web.pointer.on_move(function (event)
 {
     cam.tilt(event.movementY / 100, event.movementX / 100);
+
+    g.web.signal('angles', [cam.pitch(), cam.yaw()]);
 });
 
 g.web.pointer.on_press((event) => {
@@ -91,8 +93,8 @@ g.web.pointer.on_press((event) => {
 //     console.log(msg);
 // });
 
-g.web.on('state', (state) => {
-
+g.web.on('pos').do((pos) => {
+    cam.position(pos);
 });
 
 
@@ -106,10 +108,10 @@ g.update(function (dt)
 
     cam.update(dt);
 
-	if (g.web.key.is_pressed('w')) { vec.add([ 0, 1 ]); }
-    if (g.web.key.is_pressed('s')) { vec.add([ 0,-1 ]); }
-    if (g.web.key.is_pressed('a')) { vec.add([-1, 0 ]); }
-    if (g.web.key.is_pressed('d')) { vec.add([ 1, 0 ]); }
+	if (g.web.key.is_pressed('w')) { vec = vec.add([ 0, 1 ]); }
+    if (g.web.key.is_pressed('s')) { vec = vec.add([ 0,-1 ]); }
+    if (g.web.key.is_pressed('a')) { vec = vec.add([-1, 0 ]); }
+    if (g.web.key.is_pressed('d')) { vec = vec.add([ 1, 0 ]); }
 
     if (!vec.eq(walk_action))
     {
