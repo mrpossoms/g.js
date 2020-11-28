@@ -197,9 +197,19 @@ const g = {
 					{
 						var norm = fp.sub(pd_f);
 						if (norm.dot(norm) > 0) { norm = norm.norm(); }
+
+						var pen = [0, 0, 0];
+
+						for (var i = 0; i < 3; i++)
+						{
+							if (dir[i] >= 0) { pen[i] = pd[i] - pd_f[i]; }
+							else             { pen[i] = pd[i] - pd_c[i]; }
+						}
+
 						return {
 							point: pos,
-							normal: norm
+							normal: norm,
+							penetration: pen
 						};
 					}
 
