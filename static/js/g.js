@@ -496,17 +496,17 @@ const g = {
 				}
 
 				velocity = new_vel;
-				cam.position(cam.position().add(velocity.mul(dt)));
+				const pos = cam.position().add(velocity.mul(dt));
 
 				const qx = [].quat_rotation([1, 0, 0], pitch);
 				const qy = [].quat_rotation([0, 1, 0], yaw);
-				const q = qy.quat_mul(qx)
+				const q = cam._q = qy.quat_mul(qx)
 
-				cam.up(q.quat_rotate_vector([0, 1, 0]));
-				cam.forward(q.quat_rotate_vector([0, 0, -1]));
+				const up = q.quat_rotate_vector([0, 1, 0]);
+				const forward = q.quat_rotate_vector([0, 0, -1]);
 				// cam._left = cam._q.quat_rotate_vector([-1, 0, 0]));
 
-				cam.view(cam.position(), cam.forward(), cam.up());
+				cam.view(pos, forward, up);
 
 			};
 

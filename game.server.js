@@ -30,11 +30,13 @@ module.exports.server = {
 			};
 
 			player.cam = g.camera.fps({ collides: cam_colision_check });
-			player.cam.position([0, 10, 0]);
+			player.cam.position([0, 20, 0]);
 			player.cam.forces.push([0, -9, 0]);
 			player.cam.force = 20;
 			player.cam.friction = 5;
 			player.walk_dir = [0, 0];
+
+			player.emit('id', player.id);
 
 			player.on('walk', (walk_dir) => {
 				player.walk_dir = walk_dir;
@@ -80,11 +82,23 @@ module.exports.server = {
 
 	send_states: function(players, state)
 	{
+		var state = {
+			players: {}
+		};
+
 		for (var id in players)
 		{
-			console.log('player: ' + id + ' update');
-			players[id].emit('pos', (players[id].cam.position()));
-			players[id].emit('vel', (players[id].cam.velocity()));
+			state.players[id] ={	
+				pos: players[id].cam.position(),
+				vel: players[id].cam.velocity(),
+				angs: [players[id].cam.yaw()]
+			};
+		}
+
+		for (var id in players)
+		{
+			if (!players[id].emit) { continue; }
+			players[id].emit('state', state);
 		}
 	}
 };

@@ -41,7 +41,7 @@ io.on('connection', function(player) {
 // game mainloop
 const dt = 1 / 100;
 var msg = {
-	rate: 1 / 10,
+	rate: 1 / 30,
 	time_since_last: 1,
 };
 setInterval(function() {
@@ -86,7 +86,7 @@ try
 
 			const src_path = path.join(asset_path, file);
 			const base_name = path.parse(src_path).name;
-			const name = base_name + '.' + path.parse(src_path).ext;
+			const name = base_name + path.parse(src_path).ext;
 
 			const command = asset_map[asset_path].cmd.replace('$SRC', src_path)
 													 .replace('$BASENAME', base_name)
