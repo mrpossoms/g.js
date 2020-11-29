@@ -19,7 +19,9 @@ void main (void)
 	gl_Position = u_proj * u_view * v_world_pos;
 
 	v_color = a_color;
-    v_normal = normalize(mat3(u_light_view) * a_normal);
+
+    lowp mat3 model_rot = mat3(normalize(u_model[0].xyz), normalize(u_model[1].xyz), normalize(u_model[2].xyz));
+    v_normal = normalize(mat3(u_light_view) * model_rot * a_normal);
 	v_light_proj_pos = u_light_proj * u_light_view * v_world_pos;
 	v_light_proj_pos /= v_light_proj_pos.w;
 	v_light_proj_pos = (v_light_proj_pos + 1.0) / 2.0;

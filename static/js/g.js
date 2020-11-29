@@ -174,7 +174,7 @@ const g = {
 							}
 						}
 
-						center_of_mass = center_of_mass.mul(1 / cell_count);
+						center_of_mass = center_of_mass.mul(s / cell_count);
 					}
 
 					return center_of_mass;

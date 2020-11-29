@@ -104,7 +104,7 @@ g.web.on('id').do((id) => {
 
 g.web.on('state').do((s) => {
     state = s;
-    
+
     cam.position(s.players[my_id].pos);
     cam.velocity(s.players[my_id].vel);
 });
@@ -140,36 +140,10 @@ g.update(function (dt)
 var t = 0;
 
 
-const draw_scene_shadow = (camera) => {
-
-    g.web.assets['voxel/temple'].using_shader('depth_only')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_camera(camera)
-        .set_uniform('u_model').mat4([].I(4))
-        .draw_tris();
-
-
-	for (var id in state.players)
-	{
-
-		const p = state.players[id];
-		const model = [].quat_rotation([0, 1, 0], 3.1415-p.angs[0]).quat_to_matrix().mat_mul([].translate(p.pos.add([0, 0.5, 0])));
-
-
-    g.web.assets['voxel/knight'].using_shader('depth_only')
-        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
-        .with_camera(camera)
-        .set_uniform('u_model').mat4(model)
-        .draw_tris();
-
-
-	}
-};
-
 
 const draw_scene = (camera, shader) => {
 
-    g.web.assets['voxel/temple'].using_shader('basic_colored')
+    g.web.assets['voxel/temple'].using_shader(shader || 'basic_colored')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_attribute({name:'a_normal', buffer: 'normals', components: 3})
         .with_attribute({name:'a_color', buffer: 'colors', components: 3})
@@ -190,12 +164,13 @@ const draw_scene = (camera, shader) => {
 
 	for (var id in state.players)
 	{
+        if ('depth_only' != shader)
 		if (id == my_id) { continue; }
 
 		const p = state.players[id];
 		const model = [].quat_rotation([0, 1, 0], 3.1415-p.angs[0]).quat_to_matrix().mat_mul([].translate(p.pos.add([0, 0.5, 0])));
 
-	    g.web.assets['voxel/knight'].using_shader('basic_colored')
+	    g.web.assets['voxel/knight'].using_shader(shader || 'basic_colored')
 		.with_attribute({name:'a_position', buffer: 'positions', components: 3})
 		.with_attribute({name:'a_normal', buffer: 'normals', components: 3})
 		.with_attribute({name:'a_color', buffer: 'colors', components: 3})
@@ -219,7 +194,7 @@ g.web.draw(function (dt)
     light.look_at([Math.sin(t * 0.1) * 20, 52, Math.cos(t * 0.1) * 20], [0, 0, 0], [0, 1, 0]);
     shadow_map.bind_as_target();
     gl.clear(gl.DEPTH_BUFFER_BIT);
-    draw_scene_shadow(light.perspective(Math.PI / 4));
+    draw_scene(light.perspective(Math.PI / 4), 'depth_only');
     shadow_map.unbind_as_target();
 
     gl.clearColor(135/255, 206/255, 235/255, 0);

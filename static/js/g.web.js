@@ -274,8 +274,8 @@ g.web = {
 								const loc = gl.getAttribLocation(shader, description.name);
 								if (loc < 0)
 								{
-									console.error('Cannot find location for attribute "' + name + '" in shader "' + shader_name + '"');
-									return null;
+									// console.error('Cannot find location for attribute "' + name + '" in shader "' + shader_name + '"');
+									return this;
 								}
 
 								gl.vertexAttribPointer(
@@ -316,7 +316,7 @@ g.web = {
 								const shader_ref = this;
 								const loc = gl.getUniformLocation(shader, uni_name);
 
-								if (loc < 0) { console.error('Could not find uniform "' + uni_name + '"'); }
+								// if (loc < 0) { console.error('Could not find uniform "' + uni_name + '"'); }
 
 								return {
 									mat4: function(m)
