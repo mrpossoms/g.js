@@ -1,5 +1,5 @@
 {
-	"/tmp/sambaprivate/voxels": {
+	"/srv/sambaprivate/voxels": {
 		"cmd": "tools/vox2json.js $SRC > static/voxels/$BASENAME.json"
 	},
 	"/srv/sambaprivate/imgs": {
@@ -11,7 +11,7 @@
 	"/srv/sambaprivate/animations": {
 		"cmd": "cp $SRC > static/animations/$NAME"
 	},
-	"/tmp/sambaprivate/meshes": {
+	"/srv/sambaprivate/meshes": {
 		"cmd": "cp $SRC > static/meshes/$NAME"
 	}
 }

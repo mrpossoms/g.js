@@ -15,7 +15,7 @@ module.exports.server = {
 	setup: function(state)
 	{
 		const crypto = require('crypto');
-		const path = './static/voxels/castle.json';
+		const path = './static/voxels/temple.json';
 
 		var text = fs.readFileSync(path);
 		console.log(crypto.createHmac('sha256', '1234').update(text).digest('hex'));

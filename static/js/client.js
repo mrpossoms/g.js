@@ -1,6 +1,6 @@
 
 const cam_colision_check = (new_pos, new_vel) => {
-    const vox = g.web.assets['voxel/castle'];
+    const vox = g.web.assets['voxel/temple'];
     return vox.intersection(new_pos.add(vox.center_of_mass()), new_vel);
 }
 
@@ -112,7 +112,7 @@ var t = 0;
 
 const draw_scene = (camera, shader) => {
 
-    g.web.assets['voxel/castle'].using_shader(shader || 'basic_colored')
+    g.web.assets['voxel/temple'].using_shader(shader || 'basic_colored')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_attribute({name:'a_normal', buffer: 'normals', components: 3})
         .with_attribute({name:'a_color', buffer: 'colors', components: 3})
@@ -125,7 +125,7 @@ const draw_scene = (camera, shader) => {
         .set_uniform('u_light_ambient').vec3([135/255, 206/255, 235/255].mul(0.1))
         .draw_tris();
 
-    g.web.assets['voxel/castle'].using_shader('depth_only')
+    g.web.assets['voxel/temple'].using_shader('depth_only')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
