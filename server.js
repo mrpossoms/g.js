@@ -1,12 +1,57 @@
 var path = require('path');
 var fs = require('fs');
 var express = require('express');
+var bars = require('express-handlebars');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var game = game || require('./game.server.js');
+var asset_paths = [];
 
-console.log(game);
+app.engine('handlebars', bars());
+app.set('view engine', 'handlebars');
+
+/**
+ * This function walks asset directories and generates a list of assets
+ * to be loaded by the client
+ */
+function refresh_asset_paths()
+{
+	 function walk(dir, done) {
+		var results = [];
+		var list = fs.readdirSync(dir);
+		var i = 0;
+
+		(function next() {
+		  var file = list[i++];
+		  if (!file) return done(null, results);
+		  file = path.join(dir, file);
+		  fs.stat(file, function(err, stat) {
+		    if (stat && stat.isDirectory()) {
+		      walk(file, function(err, res) {
+		        results = results.concat(res);
+		        next();
+		      });
+		    } else {
+		      results.push(file.replace('static/', ''));
+		      next();
+		    }
+		  });
+		})();
+	};
+
+	asset_paths = [];
+	walk('static/voxels', (err, paths) => { asset_paths = asset_paths.concat(paths); });
+	walk('static/imgs', (err, paths) => { asset_paths = asset_paths.concat(paths); });
+	walk('static/sounds', (err, paths) => { asset_paths = asset_paths.concat(paths); });
+	walk('static/shaders', (err, paths) => { asset_paths = asset_paths.concat(paths); });
+	walk('static/meshes', (err, paths) => { asset_paths = asset_paths.concat(paths); });
+}
+
+app.get('/', (req, res) => {
+	console.log('collective: ' + asset_paths);
+	res.render('index', { asset_paths: asset_paths });
+});
 
 function new_player_id()
 {
@@ -66,45 +111,52 @@ const PORT = process.env.PORT || 3001;
 
 // Automatic asset watcher and processor
 const { exec } = require('child_process');
-try
+var asset_map = require('./asset-map.json');
+var asset_processing_fuses = {};
+var watchers = [];
+
+for (const asset_path in asset_map)
 {
-	var asset_map = require('./asset-map.json');
-
-	for (var asset_path in asset_map)
+	try
 	{
-		if (!fs.existsSync(asset_path))
-		{
-			console.error('Cannot watch "' + asset_path + '" path does not exist');
-			continue;
-		}
+		fs.watch(asset_path, { persistent: true, recursive: true }, function(event_type, file) {
 
-		fs.watch(asset_path, { persistent: true }, (event_type, file) => {
-			if (file[0] === '.') { return; }
-			if (file[file.length-1] === '~') { return; }
+			var src_path = path.join(asset_path, file);
+			var base_name = path.parse(src_path).name;
+			var name = base_name + path.parse(src_path).ext;
 
-			console.log(event_type + " " + file);
+			var fuse = setTimeout(function() {
+				const command = asset_map[asset_path].cmd.replace('$SRC', src_path)
+														 .replace('$BASENAME', base_name)
+														 .replace('$NAME', name);
+				console.log(command);
+				exec(command, (err, stdout, sterr) => {
+					delete asset_processing_fuses[src_path];
+					refresh_asset_paths();
 
-			const src_path = path.join(asset_path, file);
-			const base_name = path.parse(src_path).name;
-			const name = base_name + path.parse(src_path).ext;
+					game.server.setup(game.server.state);
+				});
+			}, 500);
 
-			const command = asset_map[asset_path].cmd.replace('$SRC', src_path)
-													 .replace('$BASENAME', base_name)
-													 .replace('$NAME', name);
-			console.log(command);
-			exec(command);
+			if (src_path in asset_processing_fuses)
+			{
+				clearInterval(asset_processing_fuses[src_path]);
+			}
+
+			asset_processing_fuses[src_path] = fuse;
+
+			console.log(asset_path + ' ' + file);
 		});
 
-		console.log('Watching "' + asset_path + '"');
+		console.log('Watching :' + asset_path);
+	}
+	catch (e)
+	{
+		console.log("Cannot watch '" + asset_path + "' " + e);
 	}
 }
-catch (e)
-{
-	console.warn('Error occured while setting up asset watch');
-	console.error(e);
-}
 
-
+refresh_asset_paths();
 // express setup
 app.use(express.static(path.join(__dirname, 'static')));
 //app.use(express.static('static'));

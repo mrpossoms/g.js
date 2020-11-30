@@ -483,6 +483,7 @@ g.web = {
 				voxel.generate = function()
 				{
 
+					const vol = voxel.width * voxel.depth * voxel.height;
 					this.mesh = {
 						positions: [],
 						normals: [],
@@ -579,7 +580,9 @@ g.web = {
 							if (!cell_back)   { mesh.indices.push(ii + 2, ii + 3, ii + 0, ii + 1, ii + 2, ii + 0); ii += 4; }
 							if (!cell_top)    { mesh.indices.push(ii + 0, ii + 3, ii + 2, ii + 0, ii + 2, ii + 1); ii += 4; }
 
-							mesh.center_of_mass = mesh.center_of_mass.add([x, y, z]);
+							mesh.center_of_mass[0] += x;
+							mesh.center_of_mass[1] += y;
+							mesh.center_of_mass[2] += z;
 							cell_count++;
 						}
 					}

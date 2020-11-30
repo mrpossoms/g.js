@@ -1,5 +1,5 @@
 const g = require('./static/js/g.js');
-
+const fs = require('fs');
 
 module.exports.server = {
 
@@ -14,7 +14,14 @@ module.exports.server = {
 	// server initialization goes here
 	setup: function(state)
 	{
-		state.world = g.voxel.create(require('./static/voxels/temple.json'));
+		const crypto = require('crypto');
+		const path = './static/voxels/castle.json';
+
+		var text = fs.readFileSync(path);
+		console.log(crypto.createHmac('sha256', '1234').update(text).digest('hex'));
+		state.world = null;
+		state.world = g.voxel.create(JSON.parse(text));
+		console.log('Server initialized');
 	},
 
 
@@ -50,7 +57,7 @@ module.exports.server = {
 			player.on('jump', () => {
 				if (!player.cam.is_airborn())
 				{
-					player.cam.velocity(player.cam.velocity().add([0, 6, 0])); 
+					player.cam.velocity(player.cam.velocity().add([0, 6, 0]));
 				}
 			});
 		},
@@ -88,7 +95,7 @@ module.exports.server = {
 
 		for (var id in players)
 		{
-			state.players[id] ={	
+			state.players[id] ={
 				pos: players[id].cam.position(),
 				vel: players[id].cam.velocity(),
 				angs: [players[id].cam.yaw()]

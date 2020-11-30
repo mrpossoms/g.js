@@ -1,16 +1,6 @@
-<html>
-<head>
-<link href="css/style.css" rel="stylesheet">
-<script src="/socket.io/socket.io.js"></script>
-<script type="text/javascript" src="js/g.js" charset="UTF-8"></script>
-<script type="text/javascript" src="js/g.web.js" charset="UTF-8"></script>
-<script type="text/javascript">
-
-function on_load()
-{
 
 const cam_colision_check = (new_pos, new_vel) => {
-    const vox = g.web.assets['voxel/temple'];
+    const vox = g.web.assets['voxel/castle'];
     return vox.intersection(new_pos.add(vox.center_of_mass()), new_vel);
 }
 
@@ -36,12 +26,6 @@ g.initialize(function ()
 {
     g.is_running = false;
 
-    const asset_list = [
-    {{#each asset_paths}}
-    '{{this}}',
-    {{/each}}
-    ];
-
     g.web.assets.load(asset_list,
     function() {
         g.web.gfx.shader.create('basic_textured',
@@ -66,7 +50,7 @@ g.initialize(function ()
 
     light.orthographic();
 
-	return true;
+    return true;
 });
 
 
@@ -77,20 +61,16 @@ g.web.pointer.on_move(function (event)
     g.web.signal('angles', [cam.pitch(), cam.yaw()]);
 });
 
+
 g.web.pointer.on_press((event) => {
     g.web._canvas.requestPointerLock();
 });
 
 
-// g.web.on_message(function (msg)
-// {
-//     console.log(msg);
-// });
-
-
 g.web.on('id').do((id) => {
     my_id = id;
 });
+
 
 g.web.on('state').do((s) => {
     state = s;
@@ -98,7 +78,6 @@ g.web.on('state').do((s) => {
     cam.position(s.players[my_id].pos);
     cam.velocity(s.players[my_id].vel);
 });
-
 
 
 g.update(function (dt)
@@ -111,7 +90,7 @@ g.update(function (dt)
 
     cam.update(dt);
 
-	if (g.web.key.is_pressed('w')) { vec = vec.add([ 0, 1 ]); }
+    if (g.web.key.is_pressed('w')) { vec = vec.add([ 0, 1 ]); }
     if (g.web.key.is_pressed('s')) { vec = vec.add([ 0,-1 ]); }
     if (g.web.key.is_pressed('a')) { vec = vec.add([-1, 0 ]); }
     if (g.web.key.is_pressed('d')) { vec = vec.add([ 1, 0 ]); }
@@ -133,7 +112,7 @@ var t = 0;
 
 const draw_scene = (camera, shader) => {
 
-    g.web.assets['voxel/temple'].using_shader(shader || 'basic_colored')
+    g.web.assets['voxel/castle'].using_shader(shader || 'basic_colored')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_attribute({name:'a_normal', buffer: 'normals', components: 3})
         .with_attribute({name:'a_color', buffer: 'colors', components: 3})
@@ -146,33 +125,33 @@ const draw_scene = (camera, shader) => {
         .set_uniform('u_light_ambient').vec3([135/255, 206/255, 235/255].mul(0.1))
         .draw_tris();
 
-    g.web.assets['voxel/temple'].using_shader('depth_only')
+    g.web.assets['voxel/castle'].using_shader('depth_only')
         .with_attribute({name:'a_position', buffer: 'positions', components: 3})
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
         .draw_lines();
 
-	for (var id in state.players)
-	{
+    for (var id in state.players)
+    {
         if ('depth_only' != shader)
-		if (id == my_id) { continue; }
+        if (id == my_id) { continue; }
 
-		const p = state.players[id];
-		const model = [].quat_rotation([0, 1, 0], 3.1415-p.angs[0]).quat_to_matrix().mat_mul([].translate(p.pos.add([0, 0.5, 0])));
+        const p = state.players[id];
+        const model = [].quat_rotation([0, 1, 0], 3.1415-p.angs[0]).quat_to_matrix().mat_mul([].translate(p.pos.add([0, 0.5, 0])));
 
-	    g.web.assets['voxel/knight'].using_shader(shader || 'basic_colored')
-		.with_attribute({name:'a_position', buffer: 'positions', components: 3})
-		.with_attribute({name:'a_normal', buffer: 'normals', components: 3})
-		.with_attribute({name:'a_color', buffer: 'colors', components: 3})
-		.with_camera(camera)
-		.set_uniform('u_model').mat4(model)
-		.set_uniform('u_shadow_map').texture(shadow_map.depth_attachment)
-		.set_uniform('u_light_view').mat4(light.view())
-		.set_uniform('u_light_proj').mat4(light.projection())
-		.set_uniform('u_light_diffuse').vec3([1, 1, 1])
-		.set_uniform('u_light_ambient').vec3([135/255, 206/255, 235/255].mul(0.1))
-		.draw_tris();
-	}
+        g.web.assets['voxel/knight'].using_shader(shader || 'basic_colored')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_attribute({name:'a_normal', buffer: 'normals', components: 3})
+        .with_attribute({name:'a_color', buffer: 'colors', components: 3})
+        .with_camera(camera)
+        .set_uniform('u_model').mat4(model)
+        .set_uniform('u_shadow_map').texture(shadow_map.depth_attachment)
+        .set_uniform('u_light_view').mat4(light.view())
+        .set_uniform('u_light_proj').mat4(light.projection())
+        .set_uniform('u_light_diffuse').vec3([1, 1, 1])
+        .set_uniform('u_light_ambient').vec3([135/255, 206/255, 235/255].mul(0.1))
+        .draw_tris();
+    }
 };
 
 g.web.draw(function (dt)
@@ -192,13 +171,3 @@ g.web.draw(function (dt)
     draw_scene(cam.perspective(Math.PI / 2));
 });
 
-g.start();
-}
-
-</script>
-</head>
-
-<body style="margin:0" onload="on_load()">
-<canvas style="padding:0;margin:0;width:100%;height:100%"></canvas>
-</body>
-</html>

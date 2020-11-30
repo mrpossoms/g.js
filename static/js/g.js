@@ -116,9 +116,6 @@ const g = {
 					const set = voxel_data.XYZI[vi];
 					const col = voxel_data.RGBA[set.c];
 
-					if ((voxel_data.SIZE.z - 1) - set.z == 40) {
-						console.log('oosp');
-					}
 					cells[set.x][set.z][set.y] = set.c;
 				}
 
@@ -131,7 +128,6 @@ const g = {
 						palette[pi] = [palette[pi].r / 255, palette[pi].g / 255, palette[pi].b / 255];//, palette[pi].a / 255];
 					}
 				}
-
 
 				voxel_data = {
 					width: voxel_data.SIZE.x,
