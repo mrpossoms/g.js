@@ -17,10 +17,18 @@ module.exports.server = {
 		const crypto = require('crypto');
 		const path = './static/voxels/temple.json';
 
-		var text = fs.readFileSync(path);
+		const text = fs.readFileSync(path);
 		console.log(crypto.createHmac('sha256', '1234').update(text).digest('hex'));
-		state.world = null;
-		state.world = g.voxel.create(JSON.parse(text));
+
+		try 
+		{
+			const json = JSON.parse(text);
+			state.world = g.voxel.create(json);
+		}
+		catch(e)
+		{
+			console.log('loading voxels failed: ' + e);
+		}
 		console.log('Server initialized');
 	},
 
