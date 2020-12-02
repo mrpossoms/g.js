@@ -87,7 +87,7 @@ g.web = {
 				};
 
 				tex.color = function() {
-					if (img instanceof HTMLImageElement)
+					if (img instanceof HTMLImageElement || img instanceof HTMLCanvasElement)
 					{
 						gl.texImage2D(
 							gl.TEXTURE_2D,
@@ -143,6 +143,43 @@ g.web = {
 				if (!is_power_of_2(tex.width)) { return tex.clamped(); }
 
 				return tex;
+			}
+		},
+		text: {
+			create: function(width, height)
+			{
+				var canvas = document.createElement('canvas');
+				document.body.appendChild(canvas);
+				canvas.width = width || canvas.width;
+				canvas.height = height || canvas.height;
+				canvas.hidden = true;
+				var ctx = canvas.getContext('2d');
+
+				var texture = g.web.gfx.texture.create(canvas).color().clamped().pixelated();
+				ctx.font = '50px Arial';
+
+				texture.canvas = canvas;
+				texture.text = function(str)
+				{
+					ctx.fillStyle = "#ffffff00";
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+					ctx.fillStyle = "#000000ff";
+					ctx.fillText(str, 0, 50);
+
+					gl.bindTexture(gl.TEXTURE_2D, texture);
+					gl.texImage2D(
+						gl.TEXTURE_2D,
+						0,
+						gl.RGBA,
+						gl.RGBA,
+						gl.UNSIGNED_BYTE,
+						canvas
+					);
+
+					return texture;
+				};
+
+				return texture;
 			}
 		},
 		render_target: {

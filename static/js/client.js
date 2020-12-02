@@ -17,6 +17,7 @@ cam.force = 20;
 cam.friction = 5;
 
 var shadow_map = null;
+var text_demo = null;
 var light = g.camera.create();
 var walk_action = [0, 0];
 
@@ -44,6 +45,7 @@ g.initialize(function ()
         );
 
         shadow_map = g.web.gfx.render_target.create({width: 2048, height: 2048}).shadow_map();
+        text_demo = g.web.gfx.text.create().text("hello, world");
 
         g.is_running = true;
     });
@@ -130,6 +132,14 @@ const draw_scene = (camera, shader) => {
         .with_camera(camera)
         .set_uniform('u_model').mat4([].I(4))
         .draw_lines();
+
+    g.web.assets['mesh/exported-cube'].using_shader(shader || 'basic_textured')
+        .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+        .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+        .with_camera(camera)
+        .set_uniform('u_model').mat4([].translate(camera.position().add([3, 1, 0])))
+        .set_uniform('u_texture').texture(text_demo)
+        .draw_tris();
 
     for (var id in state.players)
     {
