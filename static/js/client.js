@@ -20,7 +20,7 @@ var shadow_map = null;
 var light = g.camera.create();
 var walk_action = [0, 0];
 
-g.web.canvas(document.getElementsByTagName('canvas')[0]);
+g.web.canvas(document.getElementById('primary'));
 
 g.initialize(function ()
 {

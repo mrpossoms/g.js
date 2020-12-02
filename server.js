@@ -19,25 +19,32 @@ function refresh_asset_paths()
 {
 	 function walk(dir, done) {
 		var results = [];
-		var list = fs.readdirSync(dir);
-		var i = 0;
+		try
+		{
+			var list = fs.readdirSync(dir);
+			var i = 0;
 
-		(function next() {
-		  var file = list[i++];
-		  if (!file) return done(null, results);
-		  file = path.join(dir, file);
-		  fs.stat(file, function(err, stat) {
-		    if (stat && stat.isDirectory()) {
-		      walk(file, function(err, res) {
-		        results = results.concat(res);
-		        next();
-		      });
-		    } else {
-		      results.push(file.replace('static/', ''));
-		      next();
-		    }
-		  });
-		})();
+			(function next() {
+			  var file = list[i++];
+			  if (!file) return done(null, results);
+			  file = dir + '/' + file;
+			  fs.stat(file, function(err, stat) {
+			    if (stat && stat.isDirectory()) {
+			      walk(file, function(err, res) {
+			        results = results.concat(res);
+			        next();
+			      });
+			    } else {
+			      results.push(file.replace('\\', '/').replace('static/', ''));
+			      next();
+			    }
+			  });
+			})();
+		}
+		catch(e)
+		{
+			console.error('Could not walk ' + dir + ' ' + e);
+		}
 	};
 
 	asset_paths = [];
