@@ -146,7 +146,7 @@ g.web = {
 			}
 		},
 		text: {
-			create: function(width, height)
+			create: function(width, height, font)
 			{
 				var canvas = document.createElement('canvas');
 				document.body.appendChild(canvas);
@@ -156,15 +156,18 @@ g.web = {
 				var ctx = canvas.getContext('2d');
 
 				var texture = g.web.gfx.texture.create(canvas).color().clamped().pixelated();
-				ctx.font = '50px Arial';
+				ctx.font = font || '50px Arial';
+				ctx.textBaseline = 'top';
+				ctx.imageSmoothingEnabled = false;
 
 				texture.canvas = canvas;
 				texture.text = function(str)
 				{
+					ctx.setTransform(-1, 0, 0, -1, canvas.width, canvas.height)
 					ctx.fillStyle = "#ffffff00";
 					ctx.fillRect(0, 0, canvas.width, canvas.height);
 					ctx.fillStyle = "#000000ff";
-					ctx.fillText(str, 0, 50);
+					ctx.fillText(str, 0, 0);
 
 					gl.bindTexture(gl.TEXTURE_2D, texture);
 					gl.texImage2D(

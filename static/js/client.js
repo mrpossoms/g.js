@@ -45,7 +45,7 @@ g.initialize(function ()
         );
 
         shadow_map = g.web.gfx.render_target.create({width: 2048, height: 2048}).shadow_map();
-        text_demo = g.web.gfx.text.create().text("hello, world");
+        text_demo = g.web.gfx.text.create(128, 32, "32px Arial").text("hello, world");
 
         g.is_running = true;
     });
