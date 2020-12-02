@@ -41,6 +41,38 @@ g.web = {
 
 				window.gl = gl;
 
+				const vertex_shader = `
+				attribute vec3 a_position;
+				attribute vec2 a_tex_coord;
+				varying lowp vec2 v_tex_coord;
+				varying lowp vec3 v_pos;
+				void main (void) {
+					gl_Position = vec4(v_pos = a_position, 1.0);
+					v_tex_coord = a_tex_coord;
+				}`;
+				
+				const frag_shader = `
+				varying lowp vec2 v_tex_coord;
+				varying lowp vec3 v_pos;
+				uniform lowp float u_progress;
+				void main (void) {
+					if (0.1 > v_pos.y && v_pos.y > -0.1 && v_pos.x < ((u_progress * 2.0) - 1.0))
+					{
+						gl_FragColor = vec4(1.0);
+					}
+					else
+					{
+						gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+					}
+				}`;
+
+				g.web.gfx.shader.create('loading',
+					vertex_shader,
+					frag_shader
+				);
+
+		        g.web.assets['mesh/plane'] = g.web.gfx.mesh.plane();
+
 				if (document.body.onresize) { document.body.onresize(); }
 
 				return true;
@@ -424,6 +456,23 @@ g.web = {
 									gl.drawArrays(gl.TRIANGLE_STRIP, 0, mesh_ref.element_count / 3);
 								}
 							},
+							draw_tri_fan: function()
+							{
+								if (mesh_ref.indices)
+								{
+									gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh_ref.indices);
+									gl.drawElements(
+										gl.TRIANGLE_FAN,
+										mesh_ref.element_count,
+										mesh_ref.index_type,
+										0
+									);
+								}
+								else
+								{
+									gl.drawArrays(gl.TRIANGLE_FAN, 0, mesh_ref.element_count);
+								}
+							},
 							draw_lines: function()
 							{
 								if (mesh_ref.indices)
@@ -515,6 +564,14 @@ g.web = {
 				}
 
 				return mesh;
+			},
+			plane: function()
+			{
+				return g.web.gfx.mesh.create({
+					positions: [[-1, 1, 0], [1, 1, 0], [1, -1, 0], [-1, -1, 0]],
+					normals: [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]],
+					texture_coords: [[1, 1], [0, 1], [0, 0], [1, 0]],
+				});
 			}
 		},
 		voxel: {
@@ -777,7 +834,13 @@ g.web = {
 		processors: {},
 		load: function(asset_arr, on_finish)
 		{
+			var req_frame = window.requestAnimationFrame       ||
+			    window.webkitRequestAnimationFrame ||
+			    window.mozRequestAnimationFrame    ||
+			    window.oRequestAnimationFrame      ||
+			    window.msRequestAnimationFrame;
 			var count = asset_arr.length;
+			var loaded = 0;
 
 			function load_resource(path)
 			{
@@ -924,15 +987,41 @@ g.web = {
 			{
 				if (idx >= asset_arr.length) { return this; }
 				return load_resource(asset_arr[idx]).then(function(){
+					//function draw()
+					//req_frame(draw);
+					// draw();
+					loaded += 1;
 					return load(idx + 1);
 				})
 			}
+
+			var started = false;
+			var ticker = setInterval(function(){
+				gl.clearColor(0, 0, 0, 1);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				g.web.assets['mesh/plane'].using_shader('loading')
+				                          .with_attribute({name:'a_position', buffer: 'positions', components: 3})
+				                          .with_attribute({name:'a_tex_coord', buffer: 'texture_coords', components: 2})
+				                          .set_uniform('u_progress').float(loaded/count)
+				                          .draw_tri_fan();
+				if (!started)
+				{
+					started = true;
+					load(0).then(function(){ 
+						clearInterval(ticker); 
+						on_finish();
+					});
+				}
+				console.log('tick');
+			}, 100);
 
 			// Promise.all(promises).then(function(values)
 			// {
 			//     on_finish();
 			// });
-			load(0).then(function(){ on_finish(); })
+			// setTimeout(function(){
+			// load(0).then(function(){ clearInterval(ticker); on_finish(); })
+			// });
 		},
 	},
 
