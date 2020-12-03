@@ -1013,7 +1013,7 @@ g.web = {
 					});
 				}
 				console.log('tick');
-			}, 100);
+			}, 10);
 
 			// Promise.all(promises).then(function(values)
 			// {
