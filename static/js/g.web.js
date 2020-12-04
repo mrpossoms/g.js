@@ -50,7 +50,7 @@ g.web = {
 					gl_Position = vec4(v_pos = a_position, 1.0);
 					v_tex_coord = a_tex_coord;
 				}`;
-				
+
 				const frag_shader = `
 				varying lowp vec2 v_tex_coord;
 				varying lowp vec3 v_pos;
@@ -923,11 +923,11 @@ g.web = {
 									this.audio.playbackRate = speed;
 								}
 								this.is_playing = function() { return !this.audio.paused && !this.audio.ended; }
-								this.loop = function(loop) { this.audio.loop = loop; }
-								this.position = function(pos) { this.panner.setPosition(pos[0], pos[1], pos[2]); }
-								this.play = function()        { this.audio.play(); }
-								this.pause = function()       { this.audio.pause(); }
-								this.gain = function(g)       { this.gain_node.gain.value = g; }
+								this.loop = function(loop) { this.audio.loop = loop; return this; }
+								this.position = function(pos) { this.panner.setPosition(pos[0], pos[1], pos[2]); return this; }
+								this.play = function()        { this.audio.play(); return this; }
+								this.pause = function()       { this.audio.pause(); return this; }
+								this.gain = function(g)       { this.gain_node.gain.value = g; return this; }
 							}
 							console.log('Finished: ' + path);
 						} break;
@@ -1007,8 +1007,8 @@ g.web = {
 				if (!started)
 				{
 					started = true;
-					load(0).then(function(){ 
-						clearInterval(ticker); 
+					load(0).then(function(){
+						clearInterval(ticker);
 						on_finish();
 					});
 				}
@@ -1042,6 +1042,11 @@ g.web = {
 					t.movementY = t.clientY - g.web.pointer._last[1];
 				}
 
+				if (g.web._audio_ctx.state === 'suspended')
+				{
+					g.web._audio_ctx.resume();
+				}
+
 				on_move_func(t);
 				g.web.pointer._last = [ t.clientX, t.clientY ];
 			}, false);
@@ -1050,6 +1055,12 @@ g.web = {
 			{
 				e.preventDefault();
 				g.web.pointer._last = [ e.clientX, e.clientY ];
+
+				if (g.web._audio_ctx.state === 'suspended')
+				{
+					g.web._audio_ctx.resume();
+				}
+
 				on_move_func(e);
 			}, false);
 

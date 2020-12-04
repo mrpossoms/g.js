@@ -20,6 +20,7 @@ var shadow_map = null;
 var text_demo = null;
 var light = g.camera.create();
 var walk_action = [0, 0];
+var walk_sounds = [];
 
 g.web.canvas(document.getElementById('primary'));
 
@@ -43,6 +44,11 @@ g.initialize(function ()
             g.web.assets['shaders/depth_only.vert'],
             g.web.assets['shaders/depth_only.frag']
         );
+
+        for (var i = 0; i < 4; i++)
+        {
+            walk_sounds.push(new g.web.assets['sound/step' + (i+1)]([0, 0, 0]));
+        }
 
         shadow_map = g.web.gfx.render_target.create({width: 2048, height: 2048}).shadow_map();
         text_demo = g.web.gfx.text.create(128, 32, "32px Arial").text("hello, world");
@@ -92,7 +98,7 @@ g.update(function (dt)
 
     cam.update(dt);
 
-    if (g.web.key.is_pressed('w')) { vec = vec.add([ 0, 1 ]); }
+    if (g.web.key.is_pressed('w')) { vec = vec.add([ 0, 1 ]); walk_sounds[0].position(cam.position()).play(); }
     if (g.web.key.is_pressed('s')) { vec = vec.add([ 0,-1 ]); }
     if (g.web.key.is_pressed('a')) { vec = vec.add([-1, 0 ]); }
     if (g.web.key.is_pressed('d')) { vec = vec.add([ 1, 0 ]); }

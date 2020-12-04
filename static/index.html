@@ -29,7 +29,7 @@ cam.friction = 5;
 var shadow_map = null;
 var light = g.camera.create();
 var walk_action = [0, 0];
-
+var walk_sounds = [];
 g.web.canvas(document.getElementsByTagName('canvas')[0]);
 
 g.initialize(function ()
@@ -58,6 +58,11 @@ g.initialize(function ()
             g.web.assets['shaders/depth_only.vert'],
             g.web.assets['shaders/depth_only.frag']
         );
+
+        for (var i = 0; i < 4; i++)
+        {
+            walk_sounds.push(new g.web.assets['sounds/step' + (i+1)]);
+        }
 
         shadow_map = g.web.gfx.render_target.create({width: 2048, height: 2048}).shadow_map();
 
