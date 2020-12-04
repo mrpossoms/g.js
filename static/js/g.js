@@ -1204,6 +1204,12 @@ Array.prototype.accumulate = function(dst_key, src_key, scale)
 	}
 };
 
+Array.prototype.pick = function()
+{
+	return this[Math.floor(Math.random() * this.length)];
+};
+
+
 Array.prototype.timed_queue = function() {
 	this.last_idx = function() { return this.length - 1 < 0 ? 0 : this.length - 1; },
 	this.peek = function()

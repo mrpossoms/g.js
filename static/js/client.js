@@ -21,6 +21,7 @@ var text_demo = null;
 var light = g.camera.create();
 var walk_action = [0, 0];
 var walk_sounds = [];
+var step_cool = 0;
 
 g.web.canvas(document.getElementById('primary'));
 
@@ -98,10 +99,21 @@ g.update(function (dt)
 
     cam.update(dt);
 
-    if (g.web.key.is_pressed('w')) { vec = vec.add([ 0, 1 ]); walk_sounds[0].position(cam.position()).play(); }
+    step_cool -= dt;
+
+    if (g.web.key.is_pressed('w')) { vec = vec.add([ 0, 1 ]); }
     if (g.web.key.is_pressed('s')) { vec = vec.add([ 0,-1 ]); }
     if (g.web.key.is_pressed('a')) { vec = vec.add([-1, 0 ]); }
     if (g.web.key.is_pressed('d')) { vec = vec.add([ 1, 0 ]); }
+
+    if (vec.dot(vec) > 0.00001)
+    {
+        if (step_cool <= 0)
+        {
+            walk_sounds.pick().position(cam.position()).play();
+            step_cool = 0.1;
+        }
+    }
 
     if (!vec.eq(walk_action))
     {
