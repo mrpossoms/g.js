@@ -27,7 +27,7 @@ const g = {
 
 	canvas: function(dom_element) { g._canvas = dom_element; return this; },
 
-	start: function()
+	start: function(opts)
 	{
 		var req_frame = window.requestAnimationFrame       ||
 		                window.webkitRequestAnimationFrame ||
@@ -61,6 +61,8 @@ const g = {
 		}
 
 		// update, and render if appropriate
+		var frames = 0;
+		var time_since_sec = 0;
 		var update = function() {
 			var dt = step_timer.tick();
 
@@ -75,6 +77,18 @@ const g = {
 			}
 
 			if (g.web) { req_frame(update); }
+
+			if (opts.print_fps)
+			{
+				if (time_since_sec >= 1)
+				{
+					console.log(frames + ' fps');
+					frames = 0;
+					time_since_sec = 0;
+				}
+				time_since_sec += dt;
+				frames++;
+			}
 		};
 
 		if (g.web) { req_frame(update); }
@@ -86,6 +100,7 @@ const g = {
 			// process data into uniform type here.
 			var palette = null;
 			var locations = [];
+			const RGBA = voxel_data.RGBA.slice();
 
 			// grab the palette if it exists
 			if (voxel_data.palette)
@@ -114,12 +129,10 @@ const g = {
 				for (var vi = voxel_data.XYZI.length; vi--;)
 				{
 					const set = voxel_data.XYZI[vi];
-					const col = voxel_data.RGBA[set.c];
-
-					cells[set.x][set.z][set.y] = set.c;
+					cells[set.x][set.z][set.y] = set.c - 1;
 				}
 
-				if (typeof(voxel_data.RGBA[0]) == 'object')
+				if (voxel_data.RGBA && typeof(voxel_data.RGBA[0]) == 'object')
 				{
 					palette = voxel_data.RGBA;
 					for (var pi = palette.length; pi--;)
@@ -133,7 +146,7 @@ const g = {
 					width: voxel_data.SIZE.x,
 					height: voxel_data.SIZE.z,
 					depth: voxel_data.SIZE.y,
-					scale: voxel_data.scale,
+					scale: voxel_data.scale || 1,
 					palette: palette,
 					cells: cells
 				};
@@ -181,37 +194,213 @@ const g = {
 					dir = dir.mul(1/s);
 					var fp = pos.floor(), cp = pos.ceil();
 
-					const pd = pos.add(dir);
-					const pd_f = pd.floor();
-					const pd_c = pd.ceil();
-
-					if (pd_f[0] < 0 || pd_f[0] >= w) { return false; }
-					if (pd_f[1] < 0 || pd_f[1] >= h) { return false; }
-					if (pd_f[2] < 0 || pd_f[2] >= d) { return false; }
-
-					if (cells[pd_f[0]][pd_f[1]][pd_f[2]] > 0)
+					let itrs = Math.ceil(dir.len()) * 5;
+					for (var p = 0; p < itrs; p++)
 					{
-						var norm = fp.sub(pd_f);
-						if (norm.dot(norm) > 0) { norm = norm.norm(); }
+						const pd = pos.add(dir.mul(p / itrs));
+						const pd_f = pd.floor();
+						const pd_c = pd.ceil();
 
-						var pen = [0, 0, 0];
+						if (pd_f[0] < 0 || pd_f[0] >= w) { return false; }
+						if (pd_f[1] < 0 || pd_f[1] >= h) { return false; }
+						if (pd_f[2] < 0 || pd_f[2] >= d) { return false; }
 
-						for (var i = 0; i < 3; i++)
+						if (cells[pd_f[0]][pd_f[1]][pd_f[2]] > 0)
 						{
-							if (dir[i] >= 0) { pen[i] = pd[i] - pd_f[i]; }
-							else             { pen[i] = pd[i] - pd_c[i]; }
-						}
+							var norm = fp.sub(pd_f);
+							if (norm.dot(norm) > 0) { norm = norm.norm(); }
 
-						return {
-							point: pos,
-							normal: norm,
-							penetration: pen
-						};
+							var pen = [0, 0, 0];
+
+							for (var i = 0; i < 3; i++)
+							{
+								if (dir[i] >= 0) { pen[i] = pd[i] - pd_f[i]; }
+								else             { pen[i] = pd[i] - pd_c[i]; }
+							}
+
+							return {
+								point: pd,
+								normal: norm,
+								penetration: pen
+							};
+						}
 					}
 
 					return false;
+				},
+				sample: function(pos)
+				{
+					pos = pos.mul(1/s);
+					var fp = pos.floor();
+
+					if (fp[0] < 0 || fp[0] >= w) { return undefined; }
+					if (fp[1] < 0 || fp[1] >= h) { return undefined; }
+					if (fp[2] < 0 || fp[2] >= d) { return undefined; }
+
+					return {
+						point: fp.mul(s),
+						cell: cells[fp[0]][fp[1]][fp[2]]
+					}
+				},
+				each_voxel: function(cb)
+				{
+					for (var x = 0; x < w; x++)
+					for (var y = 0; y < h; y++)
+					for (var z = 0; z < d; z++)
+					{
+						if (cells[x][y][z])
+						{
+							if (cb(x, y, z)) { return; }
+						}
+					}
+				},
+				downsample: function(factor)
+				{
+					var vox_data = {
+						SIZE: {
+							x: w / factor,
+							y: d / factor,
+							z: h / factor,
+						},
+						XYZI: [],
+						RGBA: RGBA,
+						scale: voxel_data.scale * factor
+						// palette: palette
+					};
+
+					for (var ds_x = 0; ds_x < vox_data.SIZE.x; ds_x++)
+					for (var ds_y = 0; ds_y < vox_data.SIZE.z; ds_y++)
+					for (var ds_z = 0; ds_z < vox_data.SIZE.y; ds_z++)
+					{
+
+						// find the mode of this downsampled block
+						var filled = 0;
+						var empty = 0;
+						var last_id = 0;
+						for (var x = ds_x * factor; x < (ds_x + 1) * factor; x++)
+						for (var y = ds_y * factor; y < (ds_y + 1) * factor; y++)
+						for (var z = ds_z * factor; z < (ds_z + 1) * factor; z++)
+						{
+							const id = cells[x][y][z];
+							if (id <= 0) { empty += 1; }
+							else
+							{
+								filled += 1;
+								last_id = id;
+							}
+						}
+
+						var mode = 0;
+						if (filled > empty / 2)
+						{
+							mode = last_id;
+						}
+
+						if (mode)
+						vox_data.XYZI.push({
+							x: ds_x,
+							y: ds_z,
+							z: ds_y,
+							c: mode + 1
+						});
+					}
+
+					return g.voxel.create(vox_data);
 				}
-			};;
+			};
+		}
+	},
+
+	animation: {
+		create: function(json)
+		{
+			var frames = [];
+			var tags = {};
+
+			for_each(json.meta.frameTags, (frame_tag) => {
+				tags[frame_tag.name] = [];
+				switch (frame_tag.direction)
+				{
+					case 'forward':
+						for (var i = frame_tag.from; i <= frame_tag.to; ++i)
+						{
+							tags[frame_tag.name].push(i);
+						}
+						break;
+					case 'pingpong':
+						for (var i = frame_tag.from; i <= frame_tag.to; ++i)
+						{
+							tags[frame_tag.name].push(i);
+						}
+						for (var i = frame_tag.to; i >= frame_tag.from; --i)
+						{
+							tags[frame_tag.name].push(i);
+						}
+						break;
+				}
+
+				tag = tags[frame_tag.name];
+			});
+
+			for_each(json.frames, (frame_meta) => {
+				const frame = frame_meta.frame;
+				frames.push({
+					asset: frame_meta.asset,
+					sec: frame_meta.duration / 1000
+				});
+			});
+
+			return function() {
+				this.frame_idx = 0;
+				this.frame_duration = frames[0].sec;
+				this.paused = false;
+				this.speed = 1;
+				this.tag = tag;
+				this.tags = tags;
+				this.queue = [];
+
+				this.current_frame = function()
+				{
+					return frames[this.tag[this.frame_idx]];
+				}
+
+				this.pause = function(pause) { this.paused = pause; }
+
+				this.tick = function(dt)
+				{
+					dt *= this.speed;
+
+					if(!this.paused)
+					while (dt > 0)
+					{
+						const prev_dur = this.frame_duration;
+						this.frame_duration -= dt;
+
+						if (this.frame_duration <= 0)
+						{
+							this.frame_idx++;
+							if (this.frame_idx >= this.tag.length)
+							{
+								if (this.queue.length > 0)
+								{
+									this.tag = this.queue.pop();
+								}
+
+								this.frame_idx = 0;
+							}
+							this.frame_duration = this.current_frame().sec;
+						}
+
+						dt -= prev_dur;
+					}
+				};
+
+				this.set = function(tag)
+				{
+					this.frame_idx = 0;
+					this.tag = this.tags[tag];
+				}
+			};
 		}
 	},
 
@@ -308,18 +497,18 @@ const g = {
 				{
 					fov = fov || Math.PI / 2;
 					near = near || 0.1;
-					far = far || 500;
+					far = far || 1000;
 
 					_proj = [].perspective(fov, g.web.gfx.aspect(), near, far);
 
 					return this;
 				},
-				orthographic: function(near, far)
+				orthographic: function(width, height, near, far)
 				{
 					const a = g.web.gfx.aspect();
 					near = near || 0.1;
-					far = far || 100;
-					_proj = [].orthographic(-a, a, -1, 1, near, far);
+					far = far || 500;
+					_proj = [].orthographic(width/2, -width/2, height/2, -height/2, near, far);
 
 					return this;
 				}
@@ -373,7 +562,7 @@ const g = {
 				{
 					if (0 == i) { continue; }
 					coll_dirs.push([i, 0, 0].mul(0.125));
-					coll_dirs.push([0, i, 0].mul(0.125));
+					coll_dirs.push([0, i, 0].mul(1));
 					coll_dirs.push([0, 0, i].mul(0.125));
 				}
 
@@ -409,6 +598,11 @@ const g = {
 				}
 			};
 
+			cam.force = (force, dt) => {
+				var accel = force.mul(dt / cam.mass);
+				velocity = velocity.add(accel);
+			};
+
 			cam.velocity = (vel) => {
 				if (vel) { velocity = vel; }
 				else { return velocity; }
@@ -423,15 +617,53 @@ const g = {
 				}
 
 				yaw += d_yaw;
+
+				const pos = cam.position();
+
+				const qx = [].quat_rotation([1, 0, 0], pitch);
+				const qy = [].quat_rotation([0, 1, 0], yaw);
+				const q = cam._q = qy.quat_mul(qx)
+
+				const up = q.quat_rotate_vector([0, 1, 0]);
+				const forward = q.quat_rotate_vector([0, 0, -1]);
+				// cam._left = cam._q.quat_rotate_vector([-1, 0, 0]));
+
+				cam.view(pos, forward, up);
 			};
 
 			cam.pitch = (p) => {
-				if (p) { pitch = p; }
+				if (p)
+				{
+					pitch = p;
+
+					const qx = [].quat_rotation([1, 0, 0], pitch);
+					const qy = [].quat_rotation([0, 1, 0], yaw);
+					const q = qx.quat_mul(qy);
+
+					let up = qx.quat_rotate_vector([0, 1, 0]);
+					up = qy.quat_rotate_vector(up);
+
+					let forward = qx.quat_rotate_vector([0, 0, 1]);
+					forward = qy.quat_rotate_vector(forward);
+
+					cam.view(cam.position(), forward, up);
+				}
 				return pitch;
 			};
 
 			cam.yaw = (y) => {
-				if (y) { yaw = y; }
+				if (y)
+				{
+					yaw = y;
+
+					const qx = [].quat_rotation([1, 0, 0], pitch);
+					const qy = [].quat_rotation([0, 1, 0], yaw);
+					const q = qx.quat_mul(qy)
+
+					const up = q.quat_rotate_vector([0, 1, 0]);
+					const forward = q.quat_rotate_vector([0, 0, 1]);
+					cam.forward(forward);
+				}
 				return yaw;
 			};
 
@@ -447,16 +679,24 @@ const g = {
 			}
 
 			cam.update = (dt)=> {
-				var net_force = [0, 0, 0];
+				var new_vel = [0, 0, 0];
 
-				for (var i = 0; i < cam.forces.length; i++)
+				if (opts.dynamics)
 				{
-					net_force = net_force.add(cam.forces[i]);
+					new_vel = opts.dynamics(cam, dt);
 				}
+				else
+				{ // default dynamics
+					var net_force = [0, 0, 0];
 
-				const net_accel = net_force.mul(dt / cam.mass);
-				var new_vel = velocity.add(net_accel);
-				const new_pos = cam.position().add(new_vel.mul(dt));
+					for (var i = 0; i < cam.forces.length; i++)
+					{
+						net_force = net_force.add(cam.forces[i]);
+					}
+
+					const net_accel = net_force.mul(dt / cam.mass);
+					var new_vel = velocity.add(net_accel);
+				}
 
 				last_collisions = [];
 
@@ -465,11 +705,12 @@ const g = {
 				for (var j = coll_dirs.length; j--;)
 				{
 					var dir = coll_dirs[j];
-					// var dot = dir.dot(new_vel.mul(dt));
-					// if (dot > 1)
-					// {
-					// 	dir = dir.add(new_vel.mul(dt));
-					// }
+
+					const new_vel_dt = new_vel.mul(dt);
+					if (dir.dot(new_vel_dt) > 0)
+					{
+						dir = dir.add(new_vel_dt);
+					}
 
 					const collision = opts.collides(
 						coll_offsets[i].add(cam.position()),
@@ -695,6 +936,11 @@ Array.prototype.len = function()
 
 	return Math.sqrt(this.dot(this));
 };
+
+Array.prototype.dist = function(v)
+{
+	return this.sub(v).len();
+}
 
 Array.prototype.norm = function()
 {
@@ -1005,11 +1251,18 @@ Array.prototype.orthographic = function(r, l, t, b, n, f)
 	const fmn = f - n;
 	const fpn = f + n;
 
+	// return [
+	//        [  2/rml,         0,          0, -rpl/rml ],
+	//        [      0,     2/tmb,          0, -tpb/tmb ],
+	//        [      0,         0,     -2/fmn, -fpn/fmn ],
+	//        [      0,         0,          0,        1 ]
+	// ];
+
 	return [
-	       [  2/rml,         0,          0, -rpl/rml ],
-	       [      0,     2/tmb,          0, -tpb/tmb ],
-	       [      0,         0,     -2/fmn, -fpn/fmn ],
-	       [      0,         0,          0,        1 ]
+		[2/rml,     0,      0,     0],
+		[    0, 2/tmb,      0,     0],
+		[    0,     0, -2/fmn,     0],
+		[    0,     0,      0,     1],
 	];
 };
 
@@ -1269,11 +1522,16 @@ Math.ray = function(ray)
 					t = s + q;
 				}
 
-				return ray.position.add(ray.direction.mul(t));
+				return t;
 			}
 		}
 	};
 };
+
+Math.random.uni = function()
+{
+	return 2 * Math.random() - 1;
+}
 
 Math.random.unit_vector = function(i)
 {

@@ -60,6 +60,13 @@ app.get('/', (req, res) => {
 	res.render('index', { asset_paths: asset_paths });
 });
 
+app.get('/reload', (req, res) => {
+	console.log('collective: ' + asset_paths);
+	// allow game server to initialize game state, etc
+	game.server.setup(game.server.state);
+	res.render('index', { asset_paths: asset_paths });
+});
+
 function new_player_id()
 {
 	var id = null;
@@ -82,10 +89,10 @@ io.on('connection', function(player) {
 	player.id = player_id;
 	game.server.players[player_id] = player;
 
-	game.server.player.connected(player, game.server.state);
+	game.server.player.connected(player, game.server.state, game.server.players);
 
 	player.on('disconnect', function() {
-		game.server.player.disconnected(player);
+		game.server.player.disconnected(player, game.server.state);
 		delete game.server.players[player_id];
 	});
 });
@@ -97,12 +104,12 @@ var msg = {
 	time_since_last: 1,
 };
 setInterval(function() {
-	game.server.update(game.server.players, dt);
+	game.server.update(game.server.players, game.server.state, dt);
 
 	for (var player_key in game.server.players)
 	{
 		var player = game.server.players[player_key];
-		game.server.player.update(player, dt);
+		game.server.player.update(player, game.server.state, dt);
 	}
 
 	msg.time_since_last += dt;

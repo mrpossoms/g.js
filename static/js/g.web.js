@@ -187,18 +187,17 @@ g.web = {
 				canvas.hidden = true;
 				var ctx = canvas.getContext('2d');
 
-				var texture = g.web.gfx.texture.create(canvas).color().clamped().pixelated();
+				var texture = g.web.gfx.texture.create(canvas).color().clamped().smooth();
 				ctx.font = font || '50px Arial';
 				ctx.textBaseline = 'top';
 				ctx.imageSmoothingEnabled = false;
 
 				texture.canvas = canvas;
-				texture.text = function(str)
+				texture.text = function(str, color)
 				{
 					ctx.setTransform(-1, 0, 0, -1, canvas.width, canvas.height)
-					ctx.fillStyle = "#ffffff00";
-					ctx.fillRect(0, 0, canvas.width, canvas.height);
-					ctx.fillStyle = "#000000ff";
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					ctx.fillStyle = color || "#000000ff";
 					ctx.fillText(str, 0, 0);
 
 					gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -314,6 +313,7 @@ g.web = {
 					indices: null,
 					vertices: {},
 					shader_configs: {},
+					element_count: 0,
 
 					buffer: function(buffer_name)
 					{
@@ -322,8 +322,10 @@ g.web = {
 						return {
 							set_data: function(v)
 							{
+								let verts = v.as_Float32Array();
 								gl.bindBuffer(gl.ARRAY_BUFFER, mesh_ref.vertices[buffer_name]);
-								gl.bufferData(gl.ARRAY_BUFFER, v.as_Float32Array(), gl.DYNAMIC_DRAW);
+								gl.bufferData(gl.ARRAY_BUFFER, verts, gl.DYNAMIC_DRAW);
+								mesh_ref.element_count = verts.length;
 							},
 						};
 					},
@@ -438,6 +440,8 @@ g.web = {
 								{
 									gl.drawArrays(gl.TRIANGLES, 0, mesh_ref.positions.length / 9);
 								}
+
+								return this;
 							},
 							draw_tri_strip: function()
 							{
@@ -455,6 +459,8 @@ g.web = {
 								{
 									gl.drawArrays(gl.TRIANGLE_STRIP, 0, mesh_ref.element_count / 3);
 								}
+
+								return this;
 							},
 							draw_tri_fan: function()
 							{
@@ -472,6 +478,8 @@ g.web = {
 								{
 									gl.drawArrays(gl.TRIANGLE_FAN, 0, mesh_ref.element_count);
 								}
+
+								return this;
 							},
 							draw_lines: function()
 							{
@@ -487,8 +495,29 @@ g.web = {
 								}
 								else
 								{
-									gl.drawArrays(gl.LINES, 0, mesh_ref.element_count / 3);
+									gl.drawArrays(gl.LINES, 0, mesh_ref.element_count);
 								}
+
+								return this;
+							},
+							draw_line_strip: function()
+							{
+								if (mesh_ref.indices)
+								{
+									gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh_ref.indices);
+									gl.drawElements(
+										gl.LINES,
+										mesh_ref.element_count,
+										mesh_ref.index_type,
+										0
+									);
+								}
+								else
+								{
+									gl.drawArrays(gl.LINE_STRIP, 0, mesh_ref.element_count / 3);
+								}
+
+								return this;
 							},
 							draw_points: function()
 							{
@@ -504,8 +533,10 @@ g.web = {
 								}
 								else
 								{
-									gl.drawArrays(gl.POINTS, 0, mesh_ref.element_count / 3);
+									gl.drawArrays(gl.POINTS, 0, mesh_ref.element_count);
 								}
+
+								return this;
 							}
 						};
 					},
@@ -892,10 +923,10 @@ g.web = {
 
 								var tex = g.web.gfx.texture.create(img).color().smooth().repeating();
 
-								if (processors.indexOf('pixelated') >= 0) { chain = chain.pixelated(); }
-								if (processors.indexOf('smooth') >= 0) { chain = chain.smooth(); }
-								if (processors.indexOf('repeating') >= 0) { chain = chain.repeating(); }
-								if (processors.indexOf('clamped') >= 0) { chain = chain.clamped(); }
+								if (processors.indexOf('pixelated') >= 0) { tex = tex.pixelated(); }
+								if (processors.indexOf('smooth') >= 0) { tex = tex.smooth(); }
+								if (processors.indexOf('repeating') >= 0) { tex = tex.repeating(); }
+								if (processors.indexOf('clamped') >= 0) { tex = tex.clamped(); }
 								g.web.assets[tex_name] = tex;
 							};
 						} break;
@@ -1012,7 +1043,6 @@ g.web = {
 						on_finish();
 					});
 				}
-				console.log('tick');
 			}, 10);
 
 			// Promise.all(promises).then(function(values)
