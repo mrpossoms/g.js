@@ -84,6 +84,8 @@ g.web.on('id').do((id) => {
 g.web.on('state').do((s) => {
     state = s;
 
+    if (!(my_id in s.players)) { return; }
+
     cam.position(s.players[my_id].pos);
     cam.velocity(s.players[my_id].vel);
 });

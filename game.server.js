@@ -14,11 +14,9 @@ module.exports.server = {
 	// server initialization goes here
 	setup: function(state)
 	{
-		const crypto = require('crypto');
 		const path = './static/voxels/temple.json';
 
 		const text = fs.readFileSync(path);
-		console.log(crypto.createHmac('sha256', '1234').update(text).digest('hex'));
 
 		try 
 		{
@@ -70,7 +68,7 @@ module.exports.server = {
 			});
 		},
 
-		update: function(player, dt)
+		update: function(player, state, dt)
 		{
 			if (player.walk_dir[0] > 0)      { player.cam.walk.right(dt); }
 			else if (player.walk_dir[0] < 0) { player.cam.walk.left(dt); }
@@ -89,7 +87,7 @@ module.exports.server = {
 
 
 	// main game loop
-	update: function(players, dt)
+	update: function(players, state, dt)
 	{
 
 	},

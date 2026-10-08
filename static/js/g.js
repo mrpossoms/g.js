@@ -29,6 +29,7 @@ const g = {
 
 	start: function(opts)
 	{
+		opts = opts || {};
 		var req_frame = window.requestAnimationFrame       ||
 		                window.webkitRequestAnimationFrame ||
 		                window.mozRequestAnimationFrame    ||
@@ -681,7 +682,7 @@ const g = {
 			cam.update = (dt)=> {
 				var new_vel = [0, 0, 0];
 
-				if (opts.dynamics)
+				if (opts && opts.dynamics)
 				{
 					new_vel = opts.dynamics(cam, dt);
 				}

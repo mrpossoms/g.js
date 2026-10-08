@@ -3,15 +3,15 @@
 		"cmd": "tools/vox2json.js $SRC > static/voxels/$BASENAME.json"
 	},
 	"/srv/sambaprivate/imgs": {
-		"cmd": "cp $SRC > static/imgs/$NAME"
+		"cmd": "cp $SRC static/imgs/$NAME"
 	},
 	"/srv/sambaprivate/sounds": {
-		"cmd": "cp $SRC > static/sounds/$NAME"
+		"cmd": "cp $SRC static/sounds/$NAME"
 	},
 	"/srv/sambaprivate/animations": {
-		"cmd": "cp $SRC > static/animations/$NAME"
+		"cmd": "cp $SRC static/animations/$NAME"
 	},
 	"/srv/sambaprivate/meshes": {
-		"cmd": "cp $SRC > static/meshes/$NAME"
+		"cmd": "cp $SRC static/meshes/$NAME"
 	}
 }

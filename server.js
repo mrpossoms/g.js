@@ -17,42 +17,28 @@ app.set('view engine', 'handlebars');
  */
 function refresh_asset_paths()
 {
-	 function walk(dir, done) {
+	function walk(dir)
+	{
 		var results = [];
 		try
 		{
-			var list = fs.readdirSync(dir);
-			var i = 0;
-
-			(function next() {
-			  var file = list[i++];
-			  if (!file) return done(null, results);
-			  file = dir + '/' + file;
-			  fs.stat(file, function(err, stat) {
-			    if (stat && stat.isDirectory()) {
-			      walk(file, function(err, res) {
-			        results = results.concat(res);
-			        next();
-			      });
-			    } else {
-			      results.push(file.replace('\\', '/').replace('static/', ''));
-			      next();
-			    }
-			  });
-			})();
+			for (const name of fs.readdirSync(dir))
+			{
+				const file = dir + '/' + name;
+				if (fs.statSync(file).isDirectory()) { results = results.concat(walk(file)); }
+				else { results.push(file.replace(/\\/g, '/').replace('static/', '')); }
+			}
 		}
 		catch(e)
 		{
 			console.error('Could not walk ' + dir + ' ' + e);
 		}
+		return results;
 	};
 
-	asset_paths = [];
-	walk('static/voxels', (err, paths) => { asset_paths = asset_paths.concat(paths); });
-	walk('static/imgs', (err, paths) => { asset_paths = asset_paths.concat(paths); });
-	walk('static/sounds', (err, paths) => { asset_paths = asset_paths.concat(paths); });
-	walk('static/shaders', (err, paths) => { asset_paths = asset_paths.concat(paths); });
-	walk('static/meshes', (err, paths) => { asset_paths = asset_paths.concat(paths); });
+	asset_paths = ['voxels', 'imgs', 'sounds', 'shaders', 'meshes']
+		.map((d) => walk('static/' + d))
+		.reduce((all, paths) => all.concat(paths), []);
 }
 
 app.get('/', (req, res) => {
@@ -154,7 +140,7 @@ for (const asset_path in asset_map)
 
 			if (src_path in asset_processing_fuses)
 			{
-				clearInterval(asset_processing_fuses[src_path]);
+				clearTimeout(asset_processing_fuses[src_path]);
 			}
 
 			asset_processing_fuses[src_path] = fuse;
