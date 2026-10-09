@@ -1,3 +1,5 @@
+import g from 'g.js/web';
+
 
 const cam_colision_check = (new_pos, new_vel) => {
     const vox = g.web.assets['voxel/temple'];
@@ -201,3 +203,4 @@ g.web.draw(function (dt)
     draw_scene(cam.perspective(Math.PI / 2));
 });
 
+g.start();

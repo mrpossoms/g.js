@@ -1,7 +1,7 @@
-const g = require('./static/js/g.js');
-const fs = require('fs');
+import g from 'g.js';
+import fs from 'fs';
 
-module.exports.server = {
+export default {
 
 	// map of all connected players
 	players: {},
@@ -14,7 +14,7 @@ module.exports.server = {
 	// server initialization goes here
 	setup: function(state)
 	{
-		const path = './static/voxels/temple.json';
+		const path = new URL('../assets/voxels/temple.json', import.meta.url);
 
 		const text = fs.readFileSync(path);
 

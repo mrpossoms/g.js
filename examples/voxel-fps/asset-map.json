@@ -1,0 +1,17 @@
+{
+	"/srv/sambaprivate/voxels": {
+		"cmd": "node ../../tools/vox2json.js $SRC > assets/voxels/$BASENAME.json"
+	},
+	"/srv/sambaprivate/imgs": {
+		"cmd": "cp $SRC assets/imgs/$NAME"
+	},
+	"/srv/sambaprivate/sounds": {
+		"cmd": "cp $SRC assets/sounds/$NAME"
+	},
+	"/srv/sambaprivate/animations": {
+		"cmd": "cp $SRC assets/animations/$NAME"
+	},
+	"/srv/sambaprivate/meshes": {
+		"cmd": "cp $SRC assets/meshes/$NAME"
+	}
+}

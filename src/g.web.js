@@ -1,30 +1,33 @@
+import g, { for_each } from './g.js';
+
 g.web = {
 	_draw: function() {},
 	_on_message: function() {},
 	_on_event: {},
+	_socket: null,
 	_canvas: null,
 	_audio_ctx: null,
 
 	gfx: {
 		_initalize: function()
 		{
-			with (g.web)
 			{
-				if (_canvas == null)
+				if (g.web._canvas == null)
 				{
 					console.error('Canvas element has not been set, WebGL cannot initialize');
 					return false;
 				}
 
-				const gl = _canvas.getContext('webgl');
-				const depth_ext = gl.getExtension('WEBGL_depth_texture');
-				if (!depth_ext) {
-					return alert('need WEBGL_depth_texture');
-				}
-
+				const gl = g.web._canvas.getContext('webgl');
 				if (gl == null)
 				{
 					alert('Unable to initialize WebGL. Your browser or machine may not support it.');
+					return false;
+				}
+
+				const depth_ext = gl.getExtension('WEBGL_depth_texture');
+				if (!depth_ext) {
+					alert('need WEBGL_depth_texture');
 					return false;
 				}
 
@@ -743,6 +746,7 @@ g.web = {
 				const img_h = aesprite_json.meta.size.h;
 				var frames = [];
 				var tags = {};
+				var tag;
 
 				for_each(aesprite_json.meta.frameTags, (frame_tag) => {
 					tags[frame_tag.name] = [];
@@ -849,6 +853,16 @@ g.web = {
 		{
 			const AudioContext = window.AudioContext || window.webkitAudioContext;
 			g.web._audio_ctx = new AudioContext();
+
+			// browsers start audio suspended until the user interacts with the page
+			const resume = function()
+			{
+				g.web._audio_ctx.resume();
+				window.removeEventListener('pointerdown', resume);
+				window.removeEventListener('keydown', resume);
+			};
+			window.addEventListener('pointerdown', resume);
+			window.addEventListener('keydown', resume);
 		},
 		listener:
 		{
@@ -863,24 +877,24 @@ g.web = {
 	},
 	assets: {
 		processors: {},
-		load: function(asset_arr, on_finish)
+		// assets is either an array of paths to fetch, or an object mapping
+		// each path to the url it should be fetched from (e.g. a data: url
+		// for baked, self contained games). The path determines the asset's
+		// name and how it's processed.
+		load: function(assets, on_finish)
 		{
-			var req_frame = window.requestAnimationFrame       ||
-			    window.webkitRequestAnimationFrame ||
-			    window.mozRequestAnimationFrame    ||
-			    window.oRequestAnimationFrame      ||
-			    window.msRequestAnimationFrame;
-			var count = asset_arr.length;
+			const entries = Array.isArray(assets) ? assets.map((p) => [p, p])
+			                                      : Object.entries(assets);
+			var count = entries.length;
 			var loaded = 0;
 
-			function load_resource(path)
+			function load_resource(path, url)
 			{
-				return fetch(path).then(function(res)
+				return fetch(url).then(function(res)
 				{
 					console.log('Loading: ' + path);
-					const type = res.headers.get('content-type');
+					const type = (res.headers.get('content-type') || '').split(';')[0].trim();
 					const type_stem = type.split('/')[0];
-					var bytes_to_read = parseInt(res.headers.get('content-length'));
 
 					const fields = path.split('.');
 					const processors = fields.slice(1);
@@ -910,26 +924,31 @@ g.web = {
 						case 'image':
 						{
 							var img = new Image();
-							img.src = res.url;
 							g.web.assets[path] = img;
-							console.log('Finished: ' + path);
 
 							// create webgl texture automatically
-							img.onload = function()
+							return new Promise(function(resolve, reject)
 							{
-								img = process_asset(img);
+								img.onerror = function() { reject(new Error('Could not decode image "' + path + '"')); };
+								img.onload = function()
+								{
+									img = process_asset(img);
 
-								const tex_name = name.replace('imgs', 'tex');
+									const tex_name = name.replace('imgs', 'tex');
 
-								var tex = g.web.gfx.texture.create(img).color().smooth().repeating();
+									var tex = g.web.gfx.texture.create(img).color().smooth().repeating();
 
-								if (processors.indexOf('pixelated') >= 0) { tex = tex.pixelated(); }
-								if (processors.indexOf('smooth') >= 0) { tex = tex.smooth(); }
-								if (processors.indexOf('repeating') >= 0) { tex = tex.repeating(); }
-								if (processors.indexOf('clamped') >= 0) { tex = tex.clamped(); }
-								g.web.assets[tex_name] = tex;
-							};
-						} break;
+									if (processors.indexOf('pixelated') >= 0) { tex = tex.pixelated(); }
+									if (processors.indexOf('smooth') >= 0) { tex = tex.smooth(); }
+									if (processors.indexOf('repeating') >= 0) { tex = tex.repeating(); }
+									if (processors.indexOf('clamped') >= 0) { tex = tex.clamped(); }
+									g.web.assets[tex_name] = tex;
+									console.log('Finished: ' + path);
+									resolve();
+								};
+								img.src = res.url;
+							});
+						}
 
 						case 'audio':
 						{
@@ -968,7 +987,6 @@ g.web = {
 					switch (type)
 					{
 						case 'application/json':
-						case 'application/json; charset=UTF-8':
 						{
 							g.web.assets[path] = '';
 							return res.json().then(function (json) {
@@ -998,11 +1016,10 @@ g.web = {
 						case 'text/plain':
 						case 'application/octet-stream':
 						{
-							g.web.assets[path] = '';
-							return res.body.getReader().read().then(function(res)
+							return res.text().then(function(text)
 							{
-								console.log('Loading: ' + path + ' bytes remaining: ' + bytes_to_read);
-								g.web.assets[path] += (new TextDecoder()).decode(res.value);
+								g.web.assets[path] = text;
+								console.log('Finished OK: ' + path);
 							});
 						} break;
 					}
@@ -1016,8 +1033,8 @@ g.web = {
 			// }
 			function load(idx)
 			{
-				if (idx >= asset_arr.length) { return this; }
-				return load_resource(asset_arr[idx]).then(function(){
+				if (idx >= entries.length) { return Promise.resolve(); }
+				return load_resource(entries[idx][0], entries[idx][1]).then(function(){
 					//function draw()
 					//req_frame(draw);
 					// draw();
@@ -1210,9 +1227,11 @@ g.web = {
 		return { 'do': function(cb) { g.web._on_event[event] = cb; }}
 	},
 
+	is_online: function() { return g.web._socket != null; },
+
 	signal: function(name, msg)
 	{
-		g.web._socket.emit(name, msg);
+		if (g.web._socket) { g.web._socket.emit(name, msg); }
 	},
 
 	canvas: function(dom_element, opts)
@@ -1245,11 +1264,11 @@ g.web = {
 								   document.mozExitPointerLock ||
 								   function(){};
 
-		g.web._canvas.requestPointerLock();
-
 		return this;
 	},
 
 	draw: function(f) { g.web._draw = f; return this; }
 
 };
+
+export default g;

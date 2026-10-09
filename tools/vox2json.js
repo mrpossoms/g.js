@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-var fs = require('fs');
-var parse_mv = require('parse-magica-voxel');
+import fs from 'fs';
+import parse_mv from 'parse-magica-voxel';
 
 console.error('path: ' + process.argv[2]);
 var buf = fs.readFileSync(process.argv[2])
