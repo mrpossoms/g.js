@@ -319,9 +319,12 @@ const g = {
 		}
 	},
 
+	// Aseprite spritesheet animations, from a json export (array or hash)
 	animation: {
 		create: function(json)
 		{
+			const sheet_w = json.meta.size.w;
+			const sheet_h = json.meta.size.h;
 			var frames = [];
 			var tags = {};
 			var tag;
@@ -341,7 +344,8 @@ const g = {
 						{
 							tags[frame_tag.name].push(i);
 						}
-						for (var i = frame_tag.to; i >= frame_tag.from; --i)
+						// like aseprite, don't repeat the end frames
+						for (var i = frame_tag.to - 1; i > frame_tag.from; --i)
 						{
 							tags[frame_tag.name].push(i);
 						}
@@ -353,11 +357,19 @@ const g = {
 
 			for_each(json.frames, (frame_meta) => {
 				const frame = frame_meta.frame;
+				// frame's region of the sheet, normalized to texture coordinates
 				frames.push({
+					x: frame.x / sheet_w,
+					y: frame.y / sheet_h,
+					w: frame.w / sheet_w,
+					h: frame.h / sheet_h,
 					asset: frame_meta.asset,
 					sec: frame_meta.duration / 1000
 				});
 			});
+
+			// without any tags, play every frame in order
+			if (tag === undefined) { tag = frames.map((_, i) => i); }
 
 			return function() {
 				this.frame_idx = 0;
@@ -409,6 +421,16 @@ const g = {
 					this.frame_idx = 0;
 					this.tag = this.tags[tag];
 				}
+
+				this.origin = function()
+				{
+					return [ this.current_frame().x,  this.current_frame().y ];
+				};
+
+				this.size = function()
+				{
+					return [ this.current_frame().w,  this.current_frame().h ];
+				};
 			};
 		}
 	},

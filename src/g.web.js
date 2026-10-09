@@ -175,7 +175,8 @@ g.web = {
 					return tex;
 				};
 
-				if (!is_power_of_2(tex.width)) { return tex.clamped(); }
+				// webgl1 can only repeat power of 2 textures
+				if (!is_power_of_2(tex.width) || !is_power_of_2(tex.height)) { return tex.clamped(); }
 
 				return tex;
 			}
@@ -740,112 +741,7 @@ g.web = {
 			}
 		},
 		sprite: {
-			create: function(aesprite_json)
-			{
-				const img_w = aesprite_json.meta.size.w;
-				const img_h = aesprite_json.meta.size.h;
-				var frames = [];
-				var tags = {};
-				var tag;
-
-				for_each(aesprite_json.meta.frameTags, (frame_tag) => {
-					tags[frame_tag.name] = [];
-					switch (frame_tag.direction)
-					{
-						case 'forward':
-							for (var i = frame_tag.from; i <= frame_tag.to; ++i)
-							{
-								tags[frame_tag.name].push(i);
-							}
-							break;
-						case 'pingpong':
-							for (var i = frame_tag.from; i <= frame_tag.to; ++i)
-							{
-								tags[frame_tag.name].push(i);
-							}
-							for (var i = frame_tag.to; i >= frame_tag.from; --i)
-							{
-								tags[frame_tag.name].push(i);
-							}
-							break;
-					}
-
-					tag = tags[frame_tag.name];
-				});
-
-				for_each(aesprite_json.frames, (frame_meta) => {
-					const frame = frame_meta.frame;
-					frames.push({
-						x: frame.x / img_w,
-						y: frame.y / img_h,
-						w: frame.w / img_w,
-						h: frame.h / img_h,
-						sec: frame_meta.duration / 1000
-					});
-				});
-
-				return function() {
-					this.frame_idx = 0;
-					this.frame_duration = frames[0].sec;
-					this.paused = false;
-					this.speed = 1;
-					this.tag = tag;
-					this.tags = tags;
-					this.queue = [];
-
-					this.current_frame = function()
-					{
-						return frames[this.tag[this.frame_idx]];
-					}
-
-					this.pause = function(pause) { this.paused = pause; }
-
-					this.tick = function(dt)
-					{
-						dt *= this.speed;
-
-						if(!this.paused)
-						while (dt > 0)
-						{
-							const prev_dur = this.frame_duration;
-							this.frame_duration -= dt;
-
-							if (this.frame_duration <= 0)
-							{
-								this.frame_idx++;
-								if (this.frame_idx >= this.tag.length)
-								{
-									if (this.queue.length > 0)
-									{
-										this.tag = this.queue.pop();
-									}
-
-									this.frame_idx = 0;
-								}
-								this.frame_duration = this.current_frame().sec;
-							}
-
-							dt -= prev_dur;
-						}
-					};
-
-					this.set = function(tag)
-					{
-						this.frame_idx = 0;
-						this.tag = this.tags[tag];
-					}
-
-					this.origin = function()
-					{
-						return [ this.current_frame().x,  this.current_frame().y ];
-					};
-
-					this.size = function()
-					{
-						return [ this.current_frame().w,  this.current_frame().h ];
-					};
-				};
-			}
+			create: function(aesprite_json) { return g.animation.create(aesprite_json); }
 		}
 	},
 	snd: {
@@ -936,7 +832,7 @@ g.web = {
 
 									const tex_name = name.replace('imgs', 'tex');
 
-									var tex = g.web.gfx.texture.create(img).color().smooth().repeating();
+									var tex = g.web.gfx.texture.create(img).color().smooth();
 
 									if (processors.indexOf('pixelated') >= 0) { tex = tex.pixelated(); }
 									if (processors.indexOf('smooth') >= 0) { tex = tex.smooth(); }
