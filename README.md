@@ -88,5 +88,6 @@ server's `setup`. Commands run from the game's directory:
 ```sh
 npm start                              # voxel-fps, multiplayer
 node bin/g.js dev examples/demo2d      # offline 2D demo
+node bin/g.js dev examples/sprite      # animated sprite from an aseprite spritesheet
 node bin/g.js bake examples/demo2d     # examples/demo2d/dist/demo2d.html
 ```
